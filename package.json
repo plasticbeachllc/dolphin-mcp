@@ -1,7 +1,8 @@
 {
-  "name": "@plastic-beach/dolphin-mcp",
+  "name": "dolphin-mcp",
   "version": "0.1.0",
-  "description": "Dolphin AI semantic code search MCP server for Continue.dev and other AI applications",
+  "description": "MCP server for Dolphin semantic code search - works with Continue.dev, Claude Desktop, and other MCP clients",
+  "author": "tdc93",
   "private": false,
   "type": "module",
   "bin": {
@@ -44,12 +45,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/plasticbeachllc/dolphin-mcp.git"
+    "url": "https://github.com/tdc93/dolphin-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/plasticbeachllc/dolphin-mcp/issues"
+    "url": "https://github.com/tdc93/dolphin-mcp/issues"
   },
-  "homepage": "https://github.com/plasticbeachllc/dolphin-mcp#readme",
+  "homepage": "https://github.com/tdc93/dolphin-mcp#readme",
   "license": "MIT",
   "engines": {
     "bun": ">=1.0.0"

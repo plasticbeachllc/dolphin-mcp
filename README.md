@@ -1,71 +1,44 @@
 # dolphin-mcp
 
-[![NPM Version](https://img.shields.io/npm/v/@plastic-beach/dolphin-mcp.svg)](https://www.npmjs.com/package/@plastic-beach/dolphin-mcp)
+[![NPM Version](https://img.shields.io/npm/v/dolphin-mcp.svg)](https://www.npmjs.com/package/dolphin-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Bun](https://img.shields.io/badge/Bun->=1.0.0-orange.svg)](https://bun.sh)
 
-A Model Context Protocol (MCP) server that provides Dolphin semantic code search capabilities to AI applications like Continue.dev, Claude Desktop, and other MCP-compatible clients.
+MCP server for Dolphin semantic code search. Conforms to [MCP spec](https://modelcontextprotocol.io/).
 
-## 🛠️ Installation
+## Quick Start
 
-### Prerequisites
-
-- **Bun** (>= 1.0.0): [Install Bun](https://bun.sh/install)
-- **Dolphin API Server**: Running on your specified endpoint
-
-### Install the MCP Server
+No installation needed - use `bunx`:
 
 ```bash
-# Install globally
-bun install -g @plastic-beach/dolphin-mcp
-
-# Or install locally in your project
-bun install @plastic-beach/dolphin-mcp
+bunx dolphin-mcp
 ```
 
-## ⚙️ Configuration
+## Configuration
 
-### Environment Variables
+### Continue.dev
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `DOLPHIN_API_URL` | No | `http://127.0.0.1:7777` | Dolphin API endpoint |
-| `KB_REST_BASE_URL` | No | - | Alternative for DOLPHIN_API_URL |
-| `LOG_LEVEL` | No | `info` | Logging level (debug, info, warn, error) |
-| `SERVER_NAME` | No | `dolphin-mcp` | Server identifier |
-| `SERVER_VERSION` | No | `0.1.0` | Server version |
-
-### Quick Setup
-
-```bash
-# Test the server
-bunx @plastic-beach/dolphin-mcp
-```
-
-## 📱 AI Application Integration
-
-### Continue.dev Configuration
-
-Add this to your `config.yaml`:
+Add to `config.yaml`:
 
 ```yaml
 mcpServers:
   - name: Dolphin-KB
-    command: dolphin-mcp
+    command: bunx
+    args:
+      - dolphin-mcp
     env:
       DOLPHIN_API_URL: "http://127.0.0.1:7777"
-    connectionTimeout: 30000
 ```
 
-### Claude Desktop Configuration
+### Claude Desktop
 
-Add this to your `claude_desktop_config.json`:
+Add to `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "dolphin-kb": {
-      "command": "dolphin-mcp",
+      "command": "bunx",
+      "args": ["dolphin-mcp"],
       "env": {
         "DOLPHIN_API_URL": "http://127.0.0.1:7777"
       }
@@ -74,116 +47,91 @@ Add this to your `claude_desktop_config.json`:
 }
 ```
 
-### Direct Usage
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DOLPHIN_API_URL` | `http://127.0.0.1:7777` | Dolphin API endpoint |
+| `LOG_LEVEL` | `info` | Logging level (debug, info, warn, error) |
+
+## Available Tools
+
+### `search_knowledge`
+Semantically query code and docs across indexed repositories and return ranked snippets with citations.
+
+```json
+{
+  "query": "string (required)",
+  "repos": ["string"],
+  "path_prefix": ["string"],
+  "top_k": "number (1-100)",
+  "max_snippets": "number",
+  "embed_model": "small | large",
+  "score_cutoff": "number"
+}
+```
+
+### `fetch_chunk`
+Fetch a chunk by chunk_id and return fenced code with citation.
+
+```json
+{
+  "chunk_id": "string (required)"
+}
+```
+
+### `fetch_lines`
+Fetch a file slice [start, end] inclusive from disk and return fenced code with citation.
+
+```json
+{
+  "repo": "string (required)",
+  "path": "string (required)",
+  "start": "number (required, 1-indexed)",
+  "end": "number (required, inclusive)"
+}
+```
+
+### `get_vector_store_info`
+Report namespaces, dims, limits, and approximate counts.
+
+```json
+{}
+```
+
+### `open_in_editor`
+Compute a vscode://file URI for a repo path and optional position.
+
+```json
+{
+  "repo": "string (required)",
+  "path": "string (required)",
+  "line": "number (1-indexed)",
+  "column": "number (1-indexed)"
+}
+```
+
+## Installation (Optional)
+
+If you prefer installing globally:
 
 ```bash
-# Start the MCP server directly
-dolphin-mcp
+bun install -g dolphin-mcp
 ```
 
-## 🧰 Available Tools
+Then use `dolphin-mcp` instead of `bunx dolphin-mcp`.
 
-The Dolphin MCP server provides these tools to AI applications:
+## Requirements
 
-### 1. search_knowledge
-Search codebase semantically using AI embeddings.
+- **Bun** >= 1.0.0 - [Install](https://bun.sh/install)
+- **Dolphin API** running on configured endpoint
 
-**Parameters:**
-- `query` (string): Search query - **Required**
-- `repos` (string[]): Optional repository filters
-- `top_k` (number): Number of results (default: 8)
+## License
 
-### 2. fetch_chunk
-Get detailed chunk content by ID.
+MIT - see [LICENSE](LICENSE) file for details.
 
-**Parameters:**
-- `chunk_id` (string): Chunk identifier - **Required**
+## Links
 
-### 3. fetch_lines
-Get specific file lines by range.
-
-**Parameters:**
-- `repo` (string): Repository name - **Required**
-- `path` (string): File path - **Required**
-- `start` (number): Start line (1-indexed) - **Required**
-- `end` (number): End line (inclusive) - **Required**
-
-### 4. get_vector_store_info
-Get knowledge base statistics and repository info.
-
-**Parameters:** None
-
-### 5. open_in_editor
-Generate VS Code URI for opening files.
-
-**Parameters:**
-- `repo` (string): Repository name - **Required**
-- `path` (string): File path - **Required**
-- `start_line` (number): Start line (default: 1)
-
-## 🔧 Development
-
-### Prerequisites
-
-- Bun (>= 1.0.0)
-- TypeScript
-- Node.js 18+
-
-### Project Structure
-
-```
-├── src/
-│   ├── cli.ts              # CLI entry point
-│   ├── index.ts            # Development entry
-│   ├── mcp/
-│   │   ├── server.ts       # MCP server implementation
-│   │   └── tools/          # MCP tool definitions
-│   ├── rest/
-│   │   └── client.ts       # REST API client
-│   └── util/               # Utilities
-├── dist/                   # Built files
-├── tests/                  # Test suites
-└── README.md
-```
-
-## 📋 Requirements
-
-- **Bun**: >= 1.0.0
-- **Node.js**: 18+
-- **Dolphin API Server**: Accessible via HTTP/HTTPS
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**Server fails to start:**
-```bash
-# Check if Dolphin API is accessible
-curl http://127.0.0.1:7777/health
-```
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🔗 Links
-
-- **NPM Package**: https://www.npmjs.com/package/@plastic-beach/dolphin-mcp
-- **GitHub Repository**: https://github.com/plasticbeachllc/dolphin-mcp
-- **MCP Specification**: https://modelcontextprotocol.io
-- **Continue.dev**: https://continue.dev
-
-## ⚡ Quick Start Commands
-
-```bash
-# Install
-bun install -g @plastic-beach/dolphin-mcp
-
-# Configure
-export DOLPHIN_API_URL="http://127.0.0.1:7777"
-
-# Start server
-dolphin-mcp
-
-# Test in terminal
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | dolphin-mcp
+- [NPM Package](https://www.npmjs.com/package/dolphin-mcp)
+- [GitHub Repository](https://github.com/tdc93/dolphin-mcp)
+- [MCP Specification](https://modelcontextprotocol.io)
