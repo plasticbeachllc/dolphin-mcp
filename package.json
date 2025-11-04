@@ -1,0 +1,64 @@
+{
+  "name": "@plastic-beach/dolphin-mcp",
+  "version": "0.1.0",
+  "description": "Dolphin AI semantic code search MCP server for Continue.dev and other AI applications",
+  "private": false,
+  "type": "module",
+  "bin": {
+    "dolphin-mcp": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "bun x tsc -p tsconfig.json",
+    "start": "bun run dist/cli.js",
+    "dev": "bun run --hot src/index.ts",
+    "lint": "bun x eslint .",
+    "test": "bun test --serial ./src/tests",
+    "prepublishOnly": "bun run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "eslint": "^9.8.0",
+    "eslint-config-standard-with-typescript": "^43.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-n": "^17.9.0",
+    "eslint-plugin-promise": "^7.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.17.0",
+    "@typescript-eslint/parser": "^7.17.0",
+    "typescript": "^5.4.5"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server", 
+    "code-search",
+    "ai",
+    "continue-dev",
+    "semantic-search",
+    "anthropic",
+    "claude",
+    "vscode"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/plasticbeachllc/dolphin-mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/plasticbeachllc/dolphin-mcp/issues"
+  },
+  "homepage": "https://github.com/plasticbeachllc/dolphin-mcp#readme",
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "README.md",
+    "package.json",
+    "tsconfig.json"
+  ]
+}
