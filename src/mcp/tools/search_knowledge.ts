@@ -1,7 +1,9 @@
 import type { Tool, CallToolResult, EmbeddedResource, TextContent } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { restSearch, type SearchResponse, restGetFileSlice } from '../../rest/client.js'
+import { restSearch, type SearchResponse } from '../../rest/client.js'
+import { fetchSnippetsInParallel, type SnippetFetchRequest } from './snippet_fetcher.js'
+import { CONFIG } from '../../util/config.js'
 import { mimeFromLangOrPath } from '../../util/mime.js'
 import { jsonSizeBytes } from '../../util/payloadCap.js'
 import { logInfo, logWarn, logError } from '../../util/logger.js'
@@ -119,40 +121,48 @@ export function makeSearchKnowledge (): { definition: Tool, handler: any, inputS
 
       const res: SearchResponse = await restSearch(body, signal)
       
-      // Transform API response to match expected format
-      const transformedHits = await Promise.all(
-        (res.hits as any[]).map(async (hit: any) => {
-          // Map 'language' to 'lang' and fetch snippet content
-          const transformedHit = {
-            ...hit,
-            lang: hit.language || hit.lang,
-            // Generate snippet by fetching file content
-            snippet: await (async () => {
-              try {
-                const fileSlice = await restGetFileSlice(
-                  hit.repo,
-                  hit.path,
-                  hit.start_line,
-                  hit.end_line,
-                  signal
-                )
-                return fileSlice.content
-              } catch (error: any) {
-                await logWarn('search', 'Failed to fetch snippet content', {
-                  repo: hit.repo,
-                  path: hit.path,
-                  lines: `${hit.start_line}-${hit.end_line}`,
-                  error: error?.message || String(error)
-                })
-                return ''
-              }
-            })(),
-            // Generate resource_link from available data
-            resource_link: `kb://${hit.repo}/${hit.path}#L${hit.start_line}-L${hit.end_line}`
-          }
-          return transformedHit
-        })
+      // Transform API response to match expected format using parallel snippet fetching
+      const hits = res.hits as any[]
+      
+      // Log search completion and snippet fetch start
+      await logInfo('snippet_fetch_start', 'search_knowledge: Starting parallel snippet fetch', {
+        query: input.query,
+        hits_count: hits.length,
+        concurrency: CONFIG.MAX_CONCURRENT_SNIPPET_FETCH,
+        timeout: CONFIG.SNIPPET_FETCH_TIMEOUT_MS,
+        retry_attempts: CONFIG.SNIPPET_FETCH_RETRY_ATTEMPTS
+      })
+      
+      // Prepare all snippet fetch requests
+      const snippetRequests: SnippetFetchRequest[] = hits.map((hit: any) => ({
+        repo: hit.repo.trim(),
+        path: hit.path,
+        startLine: hit.start_line,
+        endLine: hit.end_line
+      }))
+      
+      // Fetch all snippets in parallel with configuration-based settings
+      const snippetResults = await fetchSnippetsInParallel(
+        snippetRequests,
+        {
+          maxConcurrent: CONFIG.MAX_CONCURRENT_SNIPPET_FETCH,
+          requestTimeoutMs: CONFIG.SNIPPET_FETCH_TIMEOUT_MS,
+          retryAttempts: CONFIG.SNIPPET_FETCH_RETRY_ATTEMPTS,
+          signal
+        }
       )
+      
+      // Transform results with snippet content and metadata
+      const transformedHits = hits.map((hit: any, index: number) => {
+        const snippetResult = snippetResults[index]
+        return {
+          ...hit,
+          lang: hit.language || hit.lang,
+          snippet: snippetResult?.content ?? '',
+          resource_link: `kb://${hit.repo}/${hit.path}#L${hit.start_line}-L${hit.end_line}`,
+          _snippet_warnings: snippetResult?.warnings
+        }
+      })
 
       // Replace hits with transformed version
       const transformedRes = {
@@ -295,11 +305,32 @@ export function makeSearchKnowledge (): { definition: Tool, handler: any, inputS
         await logWarn('search', 'trimmed content to respect 50KB cap', { trimmed: true })
       }
 
+      // Calculate snippet fetch specific metrics
+      const snippet_warnings_count = transformedRes.hits.filter(h => h._snippet_warnings && h._snippet_warnings.length > 0).length
+      
+      await logInfo('snippet_fetch_complete', 'search_knowledge: Completed parallel snippet fetch', {
+        query: input.query,
+        hits_count: transformedRes.hits.length,
+        successful_snippets: transformedRes.hits.length - snippet_warnings_count,
+        failed_snippets: snippet_warnings_count,
+        snippet_warnings_count,
+        latency_ms: transformedRes.meta.latency_ms,
+        mcp_latency_ms: Date.now() - started,
+        parallel_snippet_fetch: true,
+        snippet_fetch_config: {
+          max_concurrent: CONFIG.MAX_CONCURRENT_SNIPPET_FETCH,
+          timeout_ms: CONFIG.SNIPPET_FETCH_TIMEOUT_MS,
+          retry_attempts: CONFIG.SNIPPET_FETCH_RETRY_ATTEMPTS
+        }
+      })
+      
       await logInfo('search', 'search_knowledge success', {
         hits_count: transformedRes.hits.length,
         warnings: transformedRes.meta.warnings,
         latency_ms: transformedRes.meta.latency_ms,
-        mcp_latency_ms: Date.now() - started
+        mcp_latency_ms: Date.now() - started,
+        parallel_snippet_fetch: true,
+        snippet_warnings_count
       })
 
       return result

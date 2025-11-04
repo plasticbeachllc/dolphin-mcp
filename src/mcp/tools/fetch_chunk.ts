@@ -5,6 +5,14 @@ import { restGetChunk } from '../../rest/client.js'
 import { mimeFromLangOrPath } from '../../util/mime.js'
 import { logInfo, logError } from '../../util/logger.js'
 
+/**
+ * fetch_chunk tool analysis:
+ * - Single request tool: fetches one chunk by chunk_id
+ * - No parallelization needed: only makes one restGetChunk() call
+ * - Performance is optimal: one request = one response
+ * - No changes required for parallel snippet fetching implementation
+ */
+
 const INPUT_SHAPE = { chunk_id: z.string() }
 const INPUT = z.object(INPUT_SHAPE)
 

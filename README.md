@@ -27,6 +27,10 @@ mcpServers:
       - dolphin-mcp
     env:
       DOLPHIN_API_URL: "http://127.0.0.1:7777"
+      # Optional: Performance optimization for parallel snippet fetching
+      MAX_CONCURRENT_SNIPPET_FETCH: "8"
+      SNIPPET_FETCH_TIMEOUT_MS: "2000"
+      SNIPPET_FETCH_RETRY_ATTEMPTS: "1"
 ```
 
 ### Claude Desktop
@@ -40,7 +44,10 @@ Add to `claude_desktop_config.json`:
       "command": "bunx",
       "args": ["dolphin-mcp"],
       "env": {
-        "DOLPHIN_API_URL": "http://127.0.0.1:7777"
+        "DOLPHIN_API_URL": "http://127.0.0.1:7777",
+        "MAX_CONCURRENT_SNIPPET_FETCH": "8",
+        "SNIPPET_FETCH_TIMEOUT_MS": "2000",
+        "SNIPPET_FETCH_RETRY_ATTEMPTS": "1"
       }
     }
   }
@@ -53,6 +60,39 @@ Add to `claude_desktop_config.json`:
 |----------|---------|-------------|
 | `DOLPHIN_API_URL` | `http://127.0.0.1:7777` | Dolphin API endpoint |
 | `LOG_LEVEL` | `info` | Logging level (debug, info, warn, error) |
+
+### Parallel Snippet Fetching Configuration
+
+These variables control the performance optimization for parallel snippet fetching in `search_knowledge`:
+
+| Variable | Default | Description | Recommended Range |
+|----------|---------|-------------|------------------|
+| `MAX_CONCURRENT_SNIPPET_FETCH` | `8` | Maximum parallel snippet requests | 4-12 |
+| `SNIPPET_FETCH_TIMEOUT_MS` | `2000` | Timeout per snippet request (ms) | 1500-3000 |
+| `SNIPPET_FETCH_RETRY_ATTEMPTS` | `1` | Retry attempts for failed requests | 0-3 |
+
+#### Configuration Presets
+
+**Conservative** (recommended for limited resources):
+```bash
+MAX_CONCURRENT_SNIPPET_FETCH=4
+SNIPPET_FETCH_TIMEOUT_MS=1500
+SNIPPET_FETCH_RETRY_ATTEMPTS=1
+```
+
+**Recommended** (balanced performance):
+```bash
+MAX_CONCURRENT_SNIPPET_FETCH=8
+SNIPPET_FETCH_TIMEOUT_MS=2000
+SNIPPET_FETCH_RETRY_ATTEMPTS=1
+```
+
+**Performance** (maximum throughput):
+```bash
+MAX_CONCURRENT_SNIPPET_FETCH=10
+SNIPPET_FETCH_TIMEOUT_MS=3000
+SNIPPET_FETCH_RETRY_ATTEMPTS=2
+```
 
 ## Available Tools
 

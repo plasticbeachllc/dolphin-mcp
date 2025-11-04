@@ -5,6 +5,14 @@ import { restGetFileSlice } from '../../rest/client.js'
 import { mimeFromLangOrPath } from '../../util/mime.js'
 import { logInfo, logError } from '../../util/logger.js'
 
+/**
+ * fetch_lines tool analysis:
+ * - Single request tool: fetches one file slice by repo/path/line range
+ * - No parallelization needed: only makes one restGetFileSlice() call
+ * - Performance is optimal: one request = one response
+ * - No changes required for parallel snippet fetching implementation
+ */
+
 const INPUT_SHAPE = {
   repo: z.string(),
   path: z.string(),

@@ -4,6 +4,14 @@ import { zodToJsonSchema } from 'zod-to-json-schema'
 import { restGetChunk } from '../../rest/client.js'
 import { logInfo, logError } from '../../util/logger.js'
 
+/**
+ * get_metadata tool analysis:
+ * - Single request tool: fetches metadata for one chunk by chunk_id
+ * - No parallelization needed: only makes one restGetChunk() call
+ * - Performance is optimal: one request = one response
+ * - No changes required for parallel snippet fetching implementation
+ */
+
 const INPUT_SHAPE = { chunk_id: z.string() }
 const INPUT = z.object(INPUT_SHAPE)
 
