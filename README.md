@@ -4,16 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Bun](https://img.shields.io/badge/Bun->=1.0.0-orange.svg)](https://bun.sh)
 
-A powerful Model Context Protocol (MCP) server that provides Dolphin AI semantic code search capabilities to AI applications like Continue.dev, Claude Desktop, and other MCP-compatible clients.
-
-## 🚀 Features
-
-- **Semantic Code Search**: Find code using natural language queries powered by AI embeddings
-- **Multi-Repository Support**: Search across multiple code repositories
-- **Smart Context Retrieval**: Get detailed code chunks and file slices
-- **VS Code Integration**: Generate editor-friendly file URIs
-- **Robust Error Handling**: Graceful fallbacks and informative error messages
-- **Environment Configuration**: Flexible API endpoint configuration
+A Model Context Protocol (MCP) server that provides Dolphin semantic code search capabilities to AI applications like Continue.dev, Claude Desktop, and other MCP-compatible clients.
 
 ## 🛠️ Installation
 
@@ -88,9 +79,6 @@ Add this to your `claude_desktop_config.json`:
 ```bash
 # Start the MCP server directly
 dolphin-mcp
-
-# With custom configuration
-DOLPHIN_API_URL="https://your-dolphin-instance.com" dolphin-mcp
 ```
 
 ## 🧰 Available Tools
@@ -141,26 +129,6 @@ Generate VS Code URI for opening files.
 - TypeScript
 - Node.js 18+
 
-### Setup
-
-```bash
-# Clone and setup
-git clone https://github.com/plasticbeachllc/dolphin-mcp.git
-cd dolphin-mcp
-
-# Install dependencies
-bun install
-
-# Build the project
-bun run build
-
-# Run tests
-bun test
-
-# Development mode
-bun run dev
-```
-
 ### Project Structure
 
 ```
@@ -192,35 +160,7 @@ bun run dev
 ```bash
 # Check if Dolphin API is accessible
 curl http://127.0.0.1:7777/health
-
-# Verify environment variables
-echo $DOLPHIN_API_URL
-
-# Test with explicit URL
-DOLPHIN_API_URL="http://127.0.0.1:7777" dolphin-mcp
 ```
-
-**Connection timeout:**
-- Verify DOLPHIN_API_URL is correct and accessible
-- Check firewall/network settings
-- Increase `connectionTimeout` in your MCP configuration
-
-**No search results:**
-- Ensure repositories are indexed in Dolphin
-- Check repository names match exactly
-- Verify API credentials and permissions
-
-### Logging
-
-The server logs to `mcp-bridge/logs/mcp.log` with automatic rotation (5MB, 3 files).
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## 📝 License
 
