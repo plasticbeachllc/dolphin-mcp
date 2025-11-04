@@ -16,6 +16,8 @@ export interface SearchRequestBody {
   deadline_ms?: number
   embed_model?: 'small' | 'large'
   score_cutoff?: number
+  mmr_enabled?: boolean
+  mmr_lambda?: number
   cursor?: string
   include_prompt_ready?: boolean
   ann_strategy?: 'speed' | 'accuracy' | 'adaptive' | 'custom'
