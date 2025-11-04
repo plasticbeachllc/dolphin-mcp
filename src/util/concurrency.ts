@@ -104,8 +104,7 @@ export async function mapWithConcurrency<T, R>(
 
         // Start next task if available
         if (currentIndex < items.length && activeCount < maxConcurrent && !hasError) {
-          const nextIndex = currentIndex++
-          runTask(nextIndex)
+          runTask(currentIndex++)
         }
       }
     }

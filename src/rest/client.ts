@@ -1,3 +1,5 @@
+import { CONFIG } from '../util/config.js'
+
 export interface RestError {
   error: {
     code: string
@@ -79,10 +81,7 @@ export interface FileSliceResponse {
 }
 
 function getBaseUrl (): string {
-  const env = (typeof process !== 'undefined' && process.env && process.env.KB_REST_BASE_URL)
-    ? process.env.KB_REST_BASE_URL
-    : undefined
-  return (env && env.trim().length > 0) ? env : 'http://127.0.0.1:7777'
+  return CONFIG.DOLPHIN_API_URL
 }
 
 async function doFetch<T> (path: string, init?: RequestInit, signal?: AbortSignal): Promise<T> {
@@ -91,7 +90,8 @@ async function doFetch<T> (path: string, init?: RequestInit, signal?: AbortSigna
   headers.set('Accept', 'application/json')
   headers.set('X-Client', 'mcp')
 
-  const res = await fetch(getBaseUrl() + path, { ...init, headers, signal })
+  const baseUrl = getBaseUrl()
+  const res = await fetch(baseUrl + path, { ...init, headers, signal })
   const text = await res.text()
 
   // Be robust to non-JSON upstream responses (e.g., "Internal Server Error")

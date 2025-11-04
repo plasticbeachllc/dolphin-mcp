@@ -1,6 +1,6 @@
 {
   "name": "dolphin-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for Dolphin semantic code search - works with Continue.dev, Claude Desktop, and other MCP clients",
   "author": "tdc93",
   "private": false,

@@ -81,25 +81,30 @@ export async function fetchSnippetsInParallel(
 
       for (let attempt = 0; attempt <= retryAttempts; attempt++) {
         try {
+          // Combine timeout and external abort signals
           const controller = new AbortController()
           const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs)
-
-          // Use timeout controller signal, but check external signal status
-          if (signal?.aborted) {
+          
+          // Listen for external abort to propagate cancellation
+          const externalAbortHandler = () => controller.abort()
+          signal?.addEventListener('abort', externalAbortHandler)
+          
+          try {
+            const result = await restGetFileSlice(
+              request.repo.trim(),
+              request.path,
+              request.startLine,
+              request.endLine,
+              controller.signal
+            )
+            
             clearTimeout(timeoutId)
-            throw new DOMException('Aborted', 'AbortError')
+            signal?.removeEventListener('abort', externalAbortHandler)
+            return result
+          } finally {
+            clearTimeout(timeoutId)
+            signal?.removeEventListener('abort', externalAbortHandler)
           }
-
-          const result = await restGetFileSlice(
-            request.repo.trim(),
-            request.path,
-            request.startLine,
-            request.endLine,
-            controller.signal
-          )
-
-          clearTimeout(timeoutId)
-          return result
         } catch (error) {
           lastError = error as Error
 

@@ -103,8 +103,9 @@ describe('concurrency utilities', () => {
       expect(successResults.length).toBe(5)
       
       successResults.forEach(result => {
-        expect(shouldError(result.index)).toBe(false)
-        expect(result.data).toBe(`success-${result.index}`)
+        const itemValue = [1, 2, 3, 4, 5, 6, 7][result.index]
+        expect(shouldError(itemValue)).toBe(false)
+        expect(result.data).toBe(`success-${itemValue}`)
         expect(result.error).toBeUndefined()
       })
       
@@ -113,10 +114,11 @@ describe('concurrency utilities', () => {
       expect(errorResults.length).toBe(2)
       
       errorResults.forEach(result => {
-        expect(shouldError(result.index)).toBe(true)
+        const itemValue = [1, 2, 3, 4, 5, 6, 7][result.index]
+        expect(shouldError(itemValue)).toBe(true)
         expect(result.data).toBeUndefined()
         expect(result.error).toBeInstanceOf(Error)
-        expect(result.error?.message).toContain(`Error for item ${result.index}`)
+        expect(result.error?.message).toContain(`Error for item ${itemValue}`)
       })
     })
 
@@ -272,8 +274,9 @@ describe('concurrency utilities', () => {
       
       expect(results.length).toBe(5)
       results.forEach(result => {
+        const itemValue = [1, 2, 3, 4, 5][result.index]
         expect(result.success).toBe(true)
-        expect(result.data).toBe(`processed-${result.index}`)
+        expect(result.data).toBe(`processed-${itemValue}`)
       })
     })
 
