@@ -81,7 +81,9 @@ export interface FileSliceResponse {
 }
 
 function getBaseUrl (): string {
-  return CONFIG.DOLPHIN_API_URL
+  // Read env vars dynamically to support test mock server
+  // Mock server sets KB_REST_BASE_URL after module load
+  return process.env.KB_REST_BASE_URL || process.env.DOLPHIN_API_URL || CONFIG.DOLPHIN_API_URL
 }
 
 async function doFetch<T> (path: string, init?: RequestInit, signal?: AbortSignal): Promise<T> {

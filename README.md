@@ -104,10 +104,29 @@ Semantically query code and docs across indexed repositories and return ranked s
   "query": "string (required)",
   "repos": ["string"],
   "path_prefix": ["string"],
+  "exclude_paths": ["string"],
+  "exclude_patterns": ["string"],
   "top_k": "number (1-100)",
   "max_snippets": "number",
   "embed_model": "small | large",
   "score_cutoff": "number"
+}
+```
+
+**Filtering Options**:
+- `repos`: Include only specific repositories
+- `path_prefix`: Include only paths matching these prefixes (e.g., `["src/", "lib/"]`)
+- `exclude_paths`: Exclude paths matching these prefixes (e.g., `["tests/", "node_modules/", "dist/"]`)
+- `exclude_patterns`: Exclude files matching glob patterns (e.g., `["*.test.ts", "*.config.json"]`)
+
+**Example**:
+```json
+{
+  "query": "authentication logic",
+  "repos": ["myapp"],
+  "path_prefix": ["src/"],
+  "exclude_paths": ["tests/"],
+  "exclude_patterns": ["*.spec.ts", "*.mock.ts"]
 }
 ```
 
