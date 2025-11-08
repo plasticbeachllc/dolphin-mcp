@@ -13,7 +13,9 @@
     "start": "bun run dist/cli.js",
     "dev": "bun run --hot src/index.ts",
     "lint": "bun x eslint .",
-    "test": "bun test --serial ./src/tests",
+    "clean": "rm -rf dist",
+    "test": "bun test --serial ./src/tests --exclude dist",
+    "test:clean": "npm run clean && bun test --serial ./src/tests",
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
