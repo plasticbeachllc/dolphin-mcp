@@ -81,15 +81,23 @@ export async function fetchSnippetsInParallel(
 
       for (let attempt = 0; attempt <= retryAttempts; attempt++) {
         try {
-          // Combine timeout and external abort signals
+          // Create timeout-based abort controller
           const controller = new AbortController()
           const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs)
           
-          // Listen for external abort to propagate cancellation
-          const externalAbortHandler = () => controller.abort()
-          signal?.addEventListener('abort', externalAbortHandler)
-          
           try {
+            // DEBUG: Log exact parameters being sent to /file endpoint
+            await logInfo('snippet_fetch_debug', 'Attempting to fetch snippet', {
+              repo: request.repo.trim(),
+              repo_raw: request.repo,
+              repo_length: request.repo.length,
+              repo_trimmed_length: request.repo.trim().length,
+              path: request.path,
+              startLine: request.startLine,
+              endLine: request.endLine,
+              attempt: attempt + 1
+            })
+            
             const result = await restGetFileSlice(
               request.repo.trim(),
               request.path,
@@ -98,15 +106,30 @@ export async function fetchSnippetsInParallel(
               controller.signal
             )
             
+            // DEBUG: Log successful fetch
+            await logInfo('snippet_fetch_debug', 'Successfully fetched snippet', {
+              repo: request.repo.trim(),
+              path: request.path,
+              content_length: result.content?.length || 0
+            })
+            
             clearTimeout(timeoutId)
-            signal?.removeEventListener('abort', externalAbortHandler)
             return result
           } finally {
             clearTimeout(timeoutId)
-            signal?.removeEventListener('abort', externalAbortHandler)
           }
         } catch (error) {
           lastError = error as Error
+
+          // DEBUG: Log fetch errors
+          await logError('snippet_fetch_debug', 'Failed to fetch snippet', {
+            repo: request.repo.trim(),
+            path: request.path,
+            error_name: (error as any)?.name,
+            error_message: (error as any)?.message || String(error),
+            attempt: attempt + 1,
+            will_retry: attempt < retryAttempts
+          })
 
           // Don't retry for aborted signals
           if ((error as any)?.name === 'AbortError') {
