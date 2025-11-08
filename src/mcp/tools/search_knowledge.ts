@@ -61,10 +61,10 @@ const INPUT = z.object(INPUT_SHAPE)
 
 type Input = z.infer<typeof INPUT>
 
-const CAP_BYTES = 50 * 1024
-const PER_SNIPPET_CHAR_CAP = 500
-const SHRUNK_SNIPPET_CHAR_CAP = 300
-const MIN_SNIPPET_CHAR_FLOOR = 200
+const CAP_BYTES = 70 * 1024
+const PER_SNIPPET_CHAR_CAP = 1000
+const SHRUNK_SNIPPET_CHAR_CAP = 600
+const MIN_SNIPPET_CHAR_FLOOR = 300
 
 import { fenceLang } from '../../util/language.js'
 
@@ -202,15 +202,13 @@ export function makeSearchKnowledge (): { definition: Tool, handler: any, inputS
       }
 
       for (const hit of transformedRes.hits) {
-        const includeText = (hit.snippet ?? '').length <= PER_SNIPPET_CHAR_CAP
         const resourceBlock = {
           type: 'resource' as const,
           resource: {
             uri: hit.resource_link,
             mimeType: mimeFromLangOrPath(hit.lang, hit.path),
-            // MCP SDK requires either text or blob to be present in the resource union.
-            // Always provide a string (possibly empty) to satisfy schema under tight caps.
-            text: includeText ? (hit.snippet ?? '') : ''
+            // Always include snippet text initially - payload trimming logic will reduce if needed
+            text: hit.snippet ?? ''
           }
         }
         content.push(resourceBlock)

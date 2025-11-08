@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2025-11-08
+
+### Fixed
+- **Snippet visibility**: Removed pre-filtering logic that excluded snippets longer than 500 characters from resource blocks
+- Snippets are now always included in search results, with intelligent trimming only applied when payload cap is exceeded
+
+### Changed
+- **Payload capacity increased** from 50KB to 70KB for richer search result context
+- **Snippet size limits doubled**:
+  - Initial cap: 500 → 1000 characters
+  - Shrunk cap: 300 → 600 characters
+  - Minimum floor: 200 → 300 characters
+- Improved snippet context preservation while maintaining graceful degradation under payload constraints
+
 ## [0.1.2] - 2025-11-08
 
 ### Fixed
