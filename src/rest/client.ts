@@ -13,6 +13,8 @@ export interface SearchRequestBody {
   query: string
   repos?: string[]
   path_prefix?: string[]
+  exclude_paths?: string[]
+  exclude_patterns?: string[]
   top_k?: number
   max_snippets?: number
   deadline_ms?: number
@@ -25,6 +27,7 @@ export interface SearchRequestBody {
   ann_strategy?: 'speed' | 'accuracy' | 'adaptive' | 'custom'
   ann_nprobes?: number
   ann_refine_factor?: number
+  include_graph_context?: boolean
 }
 
 export interface SearchHit {
