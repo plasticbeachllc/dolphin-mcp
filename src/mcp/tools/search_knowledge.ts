@@ -54,7 +54,8 @@ const INPUT_SHAPE = {
   cursor: z.string().optional(),
   ann_strategy: z.enum(['speed', 'accuracy', 'adaptive', 'custom']).optional(),
   ann_nprobes: z.number().int().min(1).max(50).optional(),
-  ann_refine_factor: z.number().int().min(1).max(100).optional()
+  ann_refine_factor: z.number().int().min(1).max(100).optional(),
+  include_graph_context: z.boolean().optional()
 }
 
 const INPUT = z.object(INPUT_SHAPE)
@@ -68,10 +69,95 @@ const MIN_SNIPPET_CHAR_FLOOR = 300
 
 import { fenceLang } from '../../util/language.js'
 
+function formatGraphContext(graphContext: any): string {
+  if (!graphContext || !graphContext.nodes || graphContext.nodes.length === 0) {
+    return ''
+  }
+  
+  const lines: string[] = ['', '### Code Graph Context', '']
+  
+  // Format nodes
+  if (graphContext.nodes && graphContext.nodes.length > 0) {
+    lines.push('**Entities:**')
+    for (const node of graphContext.nodes) {
+      const sig = node.signature ? ` - ${node.signature}` : ''
+      lines.push(`- **${node.type}** \`${node.qualified_name}\`${sig} (lines ${node.line_range[0]}-${node.line_range[1]})`)
+    }
+    lines.push('')
+  }
+  
+  // Format relationships grouped by type
+  const relationships = graphContext.relationships || []
+  if (relationships.length > 0) {
+    const callsTo = relationships.filter((r: any) => r.type === 'calls' && r.direction === 'outgoing')
+    const calledBy = relationships.filter((r: any) => r.type === 'calls' && r.direction === 'incoming')
+    const inherits = relationships.filter((r: any) => r.type === 'inherits' && r.direction === 'outgoing')
+    const implementations = relationships.filter((r: any) => r.type === 'implements')
+    const imports = relationships.filter((r: any) => r.type === 'imports' && r.direction === 'outgoing')
+    
+    if (callsTo.length > 0) {
+      lines.push('**Calls:**')
+      for (const rel of callsTo.slice(0, 5)) {
+        const lineInfo = rel.line_number ? ` (line ${rel.line_number})` : ''
+        lines.push(`- → \`${rel.target.qualified_name}\`${lineInfo}`)
+      }
+      lines.push('')
+    }
+    
+    if (calledBy.length > 0) {
+      lines.push('**Called by:**')
+      for (const rel of calledBy.slice(0, 5)) {
+        const lineInfo = rel.line_number ? ` (line ${rel.line_number})` : ''
+        lines.push(`- ← \`${rel.source.qualified_name}\`${lineInfo}`)
+      }
+      lines.push('')
+    }
+    
+    if (inherits.length > 0) {
+      lines.push('**Inherits from:**')
+      for (const rel of inherits) {
+        lines.push(`- \`${rel.target.qualified_name}\``)
+      }
+      lines.push('')
+    }
+    
+    if (implementations.length > 0) {
+      lines.push('**Implementations:**')
+      for (const rel of implementations) {
+        if (rel.direction === 'outgoing') {
+          lines.push(`- Implements \`${rel.target.qualified_name}\``)
+        } else {
+          lines.push(`- Implemented by \`${rel.source.qualified_name}\``)
+        }
+      }
+      lines.push('')
+    }
+    
+    if (imports.length > 0) {
+      lines.push('**Dependencies:**')
+      for (const rel of imports.slice(0, 5)) {
+        lines.push(`- \`${rel.target.qualified_name}\``)
+      }
+      lines.push('')
+    }
+  }
+  
+  return lines.join('\n')
+}
+
 function buildPromptReady (res: SearchResponse): string {
   const parts: string[] = []
   for (const h of res.hits) {
     parts.push(`[${h.repo}] ${h.path}#L${h.start_line}-L${h.end_line}`)
+    
+    // Add graph context if available
+    if ((h as any).graph_context) {
+      const graphText = formatGraphContext((h as any).graph_context)
+      if (graphText) {
+        parts.push(graphText)
+      }
+    }
+    
     const lang = fenceLang(h.lang, h.path)
     const code = h.snippet ?? ''
     if (lang) {
@@ -124,7 +210,8 @@ export function makeSearchKnowledge (): { definition: Tool, handler: any, inputS
         include_prompt_ready: false,
         ann_strategy: input.ann_strategy,
         ann_nprobes: input.ann_nprobes,
-        ann_refine_factor: input.ann_refine_factor
+        ann_refine_factor: input.ann_refine_factor,
+        include_graph_context: input.include_graph_context ?? true  // Enabled by default for richer context
       }
 
       const res: SearchResponse = await restSearch(body, signal)
@@ -168,7 +255,8 @@ export function makeSearchKnowledge (): { definition: Tool, handler: any, inputS
           lang: hit.language || hit.lang,
           snippet: snippetResult?.content ?? '',
           resource_link: `kb://${hit.repo}/${hit.path}#L${hit.start_line}-L${hit.end_line}`,
-          _snippet_warnings: snippetResult?.warnings
+          _snippet_warnings: snippetResult?.warnings,
+          graph_context: hit.graph_context  // Preserve graph context if present
         }
       })
 
