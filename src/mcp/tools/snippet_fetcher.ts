@@ -10,6 +10,8 @@ export interface SnippetFetchRequest {
   path: string
   startLine: number
   endLine: number
+  contextLinesBefore?: number
+  contextLinesAfter?: number
 }
 
 /**
@@ -18,6 +20,10 @@ export interface SnippetFetchRequest {
 export interface SnippetFetchResult {
   content: string
   warnings?: string[]
+  actualStartLine?: number  // Actual start line including context
+  actualEndLine?: number    // Actual end line including context
+  chunkStartLine?: number   // Original chunk start line
+  chunkEndLine?: number     // Original chunk end line
 }
 
 /**
@@ -98,13 +104,27 @@ export async function fetchSnippetsInParallel(
               attempt: attempt + 1
             })
             
+            // Calculate expanded line range if context is requested
+            const contextBefore = request.contextLinesBefore || 0
+            const contextAfter = request.contextLinesAfter || 0
+            const fetchStartLine = Math.max(1, request.startLine - contextBefore)
+            const fetchEndLine = request.endLine + contextAfter
+            
             const result = await restGetFileSlice(
               request.repo.trim(),
               request.path,
-              request.startLine,
-              request.endLine,
+              fetchStartLine,
+              fetchEndLine,
               controller.signal
             )
+            
+            // Store metadata separately (don't mutate the API response)
+            const metadata = {
+              actualStartLine: fetchStartLine,
+              actualEndLine: fetchEndLine,
+              chunkStartLine: request.startLine,
+              chunkEndLine: request.endLine
+            }
             
             // DEBUG: Log successful fetch
             await logInfo('snippet_fetch_debug', 'Successfully fetched snippet', {
@@ -114,7 +134,7 @@ export async function fetchSnippetsInParallel(
             })
             
             clearTimeout(timeoutId)
-            return result
+            return { result, metadata }
           } finally {
             clearTimeout(timeoutId)
           }
@@ -164,8 +184,12 @@ export async function fetchSnippetsInParallel(
   results.forEach((result, index) => {
     if (result.success && result.data) {
       snippetMap[index] = {
-        content: result.data.content,
-        warnings: result.data._meta?.warnings
+        content: result.data.result.content,
+        warnings: result.data.result._meta?.warnings,
+        actualStartLine: result.data.metadata.actualStartLine,
+        actualEndLine: result.data.metadata.actualEndLine,
+        chunkStartLine: result.data.metadata.chunkStartLine,
+        chunkEndLine: result.data.metadata.chunkEndLine
       }
       successful++
     } else {

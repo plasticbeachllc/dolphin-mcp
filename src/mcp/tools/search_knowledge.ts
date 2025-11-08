@@ -55,7 +55,9 @@ const INPUT_SHAPE = {
   ann_strategy: z.enum(['speed', 'accuracy', 'adaptive', 'custom']).optional(),
   ann_nprobes: z.number().int().min(1).max(50).optional(),
   ann_refine_factor: z.number().int().min(1).max(100).optional(),
-  include_graph_context: z.boolean().optional()
+  include_graph_context: z.boolean().optional(),
+  context_lines_before: z.number().int().min(0).max(10).optional(),
+  context_lines_after: z.number().int().min(0).max(10).optional()
 }
 
 const INPUT = z.object(INPUT_SHAPE)
@@ -148,18 +150,51 @@ function formatGraphContext(graphContext: any): string {
 function buildPromptReady (res: SearchResponse): string {
   const parts: string[] = []
   for (const h of res.hits) {
-    parts.push(`[${h.repo}] ${h.path}#L${h.start_line}-L${h.end_line}`)
+    const hit = h as any
+    
+    // Show expanded line range if context was included
+    const hasContext = hit._context_start_line && hit._context_start_line !== hit.start_line
+    const lineRange = hasContext
+      ? `L${hit._context_start_line}-L${hit._context_end_line}`
+      : `L${h.start_line}-L${h.end_line}`
+    parts.push(`[${h.repo}] ${h.path}#${lineRange}`)
     
     // Add graph context if available
-    if ((h as any).graph_context) {
-      const graphText = formatGraphContext((h as any).graph_context)
+    if (hit.graph_context) {
+      const graphText = formatGraphContext(hit.graph_context)
       if (graphText) {
         parts.push(graphText)
       }
     }
     
     const lang = fenceLang(h.lang, h.path)
-    const code = h.snippet ?? ''
+    let code = h.snippet ?? ''
+    
+    // Format code with context markers if context lines are present
+    if (hasContext && code) {
+      const lines = code.split('\n')
+      const chunkStart = hit._chunk_start_line
+      const chunkEnd = hit._chunk_end_line
+      const contextStart = hit._context_start_line
+      
+      const formattedLines: string[] = []
+      lines.forEach((line, idx) => {
+        const lineNum = contextStart + idx
+        
+        // Mark context vs chunk boundaries
+        if (lineNum === chunkStart && contextStart < chunkStart) {
+          formattedLines.push('# --- Result starts (line ' + chunkStart + ') ---')
+        }
+        
+        formattedLines.push(line)
+        
+        if (lineNum === chunkEnd && chunkEnd < hit._context_end_line) {
+          formattedLines.push('# --- Result ends (line ' + chunkEnd + ') ---')
+        }
+      })
+      code = formattedLines.join('\n')
+    }
+    
     if (lang) {
       parts.push('```' + lang)
       parts.push(code)
@@ -228,12 +263,17 @@ export function makeSearchKnowledge (): { definition: Tool, handler: any, inputS
         retry_attempts: CONFIG.SNIPPET_FETCH_RETRY_ATTEMPTS
       })
       
-      // Prepare all snippet fetch requests
+      // Prepare all snippet fetch requests with context lines if specified
+      const contextBefore = input.context_lines_before || 0
+      const contextAfter = input.context_lines_after || 0
+      
       const snippetRequests: SnippetFetchRequest[] = hits.map((hit: any) => ({
         repo: hit.repo.trim(),
         path: hit.path,
         startLine: hit.start_line,
-        endLine: hit.end_line
+        endLine: hit.end_line,
+        contextLinesBefore: contextBefore,
+        contextLinesAfter: contextAfter
       }))
       
       // Fetch all snippets in parallel with configuration-based settings
@@ -256,7 +296,12 @@ export function makeSearchKnowledge (): { definition: Tool, handler: any, inputS
           snippet: snippetResult?.content ?? '',
           resource_link: `kb://${hit.repo}/${hit.path}#L${hit.start_line}-L${hit.end_line}`,
           _snippet_warnings: snippetResult?.warnings,
-          graph_context: hit.graph_context  // Preserve graph context if present
+          graph_context: hit.graph_context,  // Preserve graph context if present
+          // Context metadata for visual formatting
+          _context_start_line: snippetResult?.actualStartLine,
+          _context_end_line: snippetResult?.actualEndLine,
+          _chunk_start_line: snippetResult?.chunkStartLine || hit.start_line,
+          _chunk_end_line: snippetResult?.chunkEndLine || hit.end_line
         }
       })
 
