@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2025-11-08
+
+### Fixed
+- **Test infrastructure bug** preventing parallel snippet fetching tests from passing
+  - Modified `getBaseUrl()` in REST client to read environment variables dynamically
+  - Mock server's `KB_REST_BASE_URL` now correctly picked up during test execution
+  - All 36 snippet fetcher and concurrency tests now passing
+
+### Changed
+- **REST client configuration** now reads `KB_REST_BASE_URL` dynamically to support test mocking while maintaining production behavior
+
 ## [0.1.1] - 2025-11-04
 
 ### Added
