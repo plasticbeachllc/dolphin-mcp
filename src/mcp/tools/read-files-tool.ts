@@ -54,10 +54,13 @@ export function makeReadFiles(): { definition: Tool; handler: any; inputSchema: 
 
       const settledResults = await Promise.allSettled(
         input.paths.map(async (filepath): Promise<ReadFileSuccess> => {
-          const fullPath = path.resolve(workspaceRoot, filepath)
+          // Handle both relative and absolute paths
+          const fullPath = path.isAbsolute(filepath)
+            ? filepath  // Use absolute path as-is
+            : path.resolve(workspaceRoot, filepath)  // Resolve relative to workspace
 
-          // Security check
-          if (!fullPath.startsWith(workspaceRoot)) {
+          // Security check: only apply to relative paths
+          if (!path.isAbsolute(filepath) && !fullPath.startsWith(workspaceRoot)) {
             throw new Error('Access denied: outside workspace')
           }
 
