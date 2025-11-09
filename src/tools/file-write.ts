@@ -18,12 +18,27 @@ const fileWriteSchema = z.object({
 });
 
 export async function fileWrite(input: z.infer<typeof fileWriteSchema>) {
-  const workspaceRoot = process.cwd();
+  const workspaceRoot = path.resolve(process.cwd());
+  
+  // Reject absolute paths outright - all paths must be relative
+  if (path.isAbsolute(input.path)) {
+    throw new Error(`Access denied: absolute paths are not allowed. Use relative paths only.`);
+  }
+  
   const fullPath = path.resolve(workspaceRoot, input.path);
 
   // Security: Workspace boundary check
-  if (!fullPath.startsWith(workspaceRoot)) {
-    throw new Error(`Access denied: ${input.path} is outside workspace`);
+  // Normalize both paths to handle symlinks and ensure consistent comparison
+  const normalizedWorkspace = path.normalize(workspaceRoot);
+  const normalizedPath = path.normalize(fullPath);
+  
+  // Use path.relative to check if the resolved path escapes the workspace
+  // If relative path starts with "..", it means we've gone outside
+  const relativePath = path.relative(normalizedWorkspace, normalizedPath);
+  const escapesWorkspace = relativePath.startsWith('..') || path.isAbsolute(relativePath);
+  
+  if (escapesWorkspace) {
+    throw new Error(`Access denied: ${input.path} resolves outside workspace`);
   }
 
   let backupPath: string | undefined;
