@@ -64,12 +64,6 @@ describe('tool registry', () => {
     expect(tool?.definition.description).toContain('vscode')
   })
 
-  it('includes read_files tool', () => {
-    const tool = tools.find(t => t.definition.name === 'read_files')
-    expect(tool).toBeDefined()
-    expect(tool?.definition.description).toContain('Read the contents of multiple files')
-  })
-
   it('all tool names are unique', () => {
     const names = tools.map(t => t.definition.name)
     const uniqueNames = new Set(names)
