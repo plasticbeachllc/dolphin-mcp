@@ -7,7 +7,6 @@ import { makeOpenInEditor } from './open_in_editor.js'
 import { makeGetVectorStoreInfo } from './get_vector_store_info.js'
 import { makeGetMetadata } from './get_metadata.js'
 import { makeFileWrite } from './file-write-tool.js'
-import { makeReadFiles } from './read-files-tool.js'
 
 export interface ToolRegistration {
   definition: Tool
@@ -22,6 +21,5 @@ export const tools: ToolRegistration[] = [
   makeOpenInEditor(),
   makeGetVectorStoreInfo(),
   makeGetMetadata(),
-  makeFileWrite(),
-  makeReadFiles()
+  makeFileWrite()
 ]
