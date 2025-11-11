@@ -26,10 +26,10 @@ type Input = z.infer<typeof INPUT>
 export function makeFileWrite(): { definition: Tool; handler: any; inputSchema: typeof INPUT_SHAPE } {
   const definition: Tool = {
     name: 'file_write',
-    description: 'Write content to a file with atomic operation and optional backup. This tool is safer than built-in Write.',
+    description: 'Write content to a file with atomic operation and automatic backup. Provides safer file writing than built-in Write tool through atomic temp-file-rename pattern and optional pre-write backups. Use this when you need guaranteed data integrity during file modifications.',
     inputSchema: zodToJsonSchema(INPUT) as any,
     annotations: {
-      title: 'Write File',
+      title: 'Write File (Safe)',
       readOnlyHint: false,
       openWorldHint: false
     }
