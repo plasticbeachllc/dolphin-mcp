@@ -158,29 +158,6 @@ Report namespaces, dims, limits, and approximate counts.
 {}
 ```
 
-### `get_metadata`
-Return metadata for a chunk by chunk_id.
-
-```json
-{
-  "chunk_id": "string (required)"
-}
-```
-
-### `file_write`
-Write content to a file with atomic operation and automatic backup. Provides safer file writing than built-in Write tool through atomic temp-file-rename pattern and optional pre-write backups.
-
-```json
-{
-  "path": "string (required, relative to workspace)",
-  "content": "string (required)",
-  "create_backup": "boolean (default: true)",
-  "create_directories": "boolean (default: true)"
-}
-```
-
-**Security**: Rejects absolute paths and enforces workspace boundary checks.
-
 ### `open_in_editor`
 Compute a vscode://file URI for a repo path and optional position.
 
