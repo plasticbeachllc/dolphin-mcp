@@ -2,8 +2,8 @@ import { describe, it, expect } from 'bun:test'
 import { tools } from '../mcp/tools/index.js'
 
 describe('tool registry', () => {
-  it('exports exactly 7 tools', () => {
-    expect(tools.length).toBe(7)
+  it('exports exactly 8 tools', () => {
+    expect(tools.length).toBe(8)
   })
 
   it('all tools have required properties', () => {
@@ -24,7 +24,7 @@ describe('tool registry', () => {
   it('includes search_knowledge tool', () => {
     const tool = tools.find(t => t.definition.name === 'search_knowledge')
     expect(tool).toBeDefined()
-    expect(tool?.definition.description).toContain('semantic')
+    expect(tool?.definition.description?.toLowerCase()).toContain('semantic')
   })
 
   it('includes fetch_chunk tool', () => {
@@ -42,7 +42,7 @@ describe('tool registry', () => {
   it('includes get_vector_store_info tool', () => {
     const tool = tools.find(t => t.definition.name === 'get_vector_store_info')
     expect(tool).toBeDefined()
-    expect(tool?.definition.description).toContain('vector')
+    expect(tool?.definition.description?.toLowerCase()).toContain('namespace')
   })
 
   it('includes get_metadata tool', () => {
@@ -64,9 +64,10 @@ describe('tool registry', () => {
     expect(tool?.definition.description).toContain('vscode')
   })
 
-  it('does not include read_files tool (removed)', () => {
+  it('includes read_files tool', () => {
     const tool = tools.find(t => t.definition.name === 'read_files')
-    expect(tool).toBeUndefined()
+    expect(tool).toBeDefined()
+    expect(tool?.definition.description).toContain('Read the contents of multiple files')
   })
 
   it('all tool names are unique', () => {
@@ -103,7 +104,8 @@ describe('tool registry', () => {
       'fetch_lines',
       'get_vector_store_info',
       'get_metadata',
-      'open_in_editor'
+      'open_in_editor',
+      'read_files'
     ]
 
     for (const toolName of readOnlyTools) {
@@ -158,6 +160,10 @@ describe('tool registry', () => {
     const openEditorTool = tools.find(t => t.definition.name === 'open_in_editor')
     expect(openEditorTool?.definition.inputSchema.required).toContain('repo')
     expect(openEditorTool?.definition.inputSchema.required).toContain('path')
+
+    // read_files requires paths
+    const readFilesTool = tools.find(t => t.definition.name === 'read_files')
+    expect(readFilesTool?.definition.inputSchema.required).toContain('paths')
   })
 
   it('tool handlers are async functions', async () => {
