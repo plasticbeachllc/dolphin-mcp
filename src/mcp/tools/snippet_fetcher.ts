@@ -67,7 +67,7 @@ export async function fetchSnippetsInParallel(
 ): Promise<{ [key: number]: SnippetFetchResult | undefined }> {
   const {
     maxConcurrent = 8,
-    requestTimeoutMs = 2000,
+    requestTimeoutMs = 1500,
     retryAttempts = 1,
     signal
   } = options
