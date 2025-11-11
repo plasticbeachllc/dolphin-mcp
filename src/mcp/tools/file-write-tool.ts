@@ -26,7 +26,7 @@ type Input = z.infer<typeof INPUT>
 export function makeFileWrite(): { definition: Tool; handler: any; inputSchema: typeof INPUT_SHAPE } {
   const definition: Tool = {
     name: 'file_write',
-    description: 'Write content to a file with atomic operation and optional backup',
+    description: 'Write content to a file with atomic operation and optional backup. This tool is safer than built-in Write.',
     inputSchema: zodToJsonSchema(INPUT) as any,
     annotations: {
       title: 'Write File',
@@ -39,24 +39,24 @@ export function makeFileWrite(): { definition: Tool; handler: any; inputSchema: 
     try {
       const input = INPUT.parse(args?.input ?? args)
       const workspaceRoot = path.resolve(process.cwd())
-      
+
       // Reject absolute paths outright - all paths must be relative
       if (path.isAbsolute(input.path)) {
         throw new Error(`Access denied: absolute paths are not allowed. Use relative paths only.`)
       }
-      
+
       const fullPath = path.resolve(workspaceRoot, input.path)
 
       // Security: Workspace boundary check
       // Normalize both paths to handle symlinks and ensure consistent comparison
       const normalizedWorkspace = path.normalize(workspaceRoot)
       const normalizedPath = path.normalize(fullPath)
-      
+
       // Use path.relative to check if the resolved path escapes the workspace
       // If relative path starts with "..", it means we've gone outside
       const relativePath = path.relative(normalizedWorkspace, normalizedPath)
       const escapesWorkspace = relativePath.startsWith('..') || path.isAbsolute(relativePath)
-      
+
       if (escapesWorkspace) {
         throw new Error(`Access denied: ${input.path} resolves outside workspace`)
       }
@@ -95,7 +95,7 @@ export function makeFileWrite(): { definition: Tool; handler: any; inputSchema: 
         await fs.rename(tempPath, fullPath) // Atomic on POSIX
       } catch (error) {
         // Clean up temp file
-        await fs.unlink(tempPath).catch(() => {})
+        await fs.unlink(tempPath).catch(() => { })
         throw error
       }
 
