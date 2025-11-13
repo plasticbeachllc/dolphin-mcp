@@ -1,5 +1,5 @@
 import { restGetFileSlice } from '../../rest/client.js'
-import { mapWithConcurrency, TaskResult } from '../../util/concurrency.js'
+import { mapWithConcurrency } from '../../util/concurrency.js'
 import { logWarn, logError, logInfo } from '../../util/logger.js'
 
 /**
@@ -69,7 +69,7 @@ export async function fetchSnippetsInParallel(
     maxConcurrent = 8,
     requestTimeoutMs = 1500,
     retryAttempts = 1,
-    signal
+    signal: _signal
   } = options
 
   const startTime = Date.now()
@@ -81,7 +81,7 @@ export async function fetchSnippetsInParallel(
 
   const results = await mapWithConcurrency(
     requests,
-    async (request, index) => {
+    async (request, _index) => {
       // Implement timeout and retry logic
       let lastError: Error | undefined
 

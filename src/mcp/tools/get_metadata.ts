@@ -29,7 +29,7 @@ export function makeGetMetadata (): { definition: Tool, handler: any, inputSchem
       const input = INPUT.parse(args?.input ?? args)
       const chunk = await restGetChunk(input.chunk_id, signal)
       // Drop content to keep response small
-      const { content, ...meta } = chunk as any
+      const { content: _content, ...meta } = chunk as any
       await logInfo('get_metadata', 'get_metadata success', { latency_ms: Date.now() - started })
       return { content: [{ type: 'text', text: 'Metadata ready.' }], isError: false, data: meta }
     } catch (e: any) {

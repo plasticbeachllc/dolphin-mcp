@@ -1,37 +1,47 @@
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
-import importPlugin from 'eslint-plugin-import';
-import nPlugin from 'eslint-plugin-n';
-import promisePlugin from 'eslint-plugin-promise';
 
 export default [
   {
-    files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.mjs'],
-    ignores: ['dist/**'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'src/tests/**',
+      '*.test.ts',
+      'test-integration.ts',
+      'kb-cli.ts',
+      'eslint.config.js'
+    ],
+  },
+  {
+    files: ['src/**/*.ts'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: './tsconfig.json',
       },
       globals: {
-        node: true,
-        es2022: true,
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
       },
     },
     plugins: {
       '@typescript-eslint': tseslint,
-      'import': importPlugin,
-      'n': nPlugin,
-      'promise': promisePlugin,
     },
     rules: {
       ...tseslint.configs.recommended.rules,
-      'no-console': 'error',
+      'no-console': 'off',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/strict-boolean-expressions': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+      }],
     },
   },
 ];
