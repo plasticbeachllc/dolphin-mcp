@@ -56,24 +56,25 @@ Add to `claude_desktop_config.json`:
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DOLPHIN_API_URL` | `http://127.0.0.1:7777` | Dolphin API endpoint |
-| `LOG_LEVEL` | `info` | Logging level (debug, info, warn, error) |
+| Variable          | Default                 | Description                              |
+| ----------------- | ----------------------- | ---------------------------------------- |
+| `DOLPHIN_API_URL` | `http://127.0.0.1:7777` | Dolphin API endpoint                     |
+| `LOG_LEVEL`       | `info`                  | Logging level (debug, info, warn, error) |
 
 ### Parallel Snippet Fetching Configuration
 
 These variables control the performance optimization for parallel snippet fetching in `search_knowledge`:
 
-| Variable | Default | Description | Recommended Range |
-|----------|---------|-------------|------------------|
-| `MAX_CONCURRENT_SNIPPET_FETCH` | `8` | Maximum parallel snippet requests | 4-12 |
-| `SNIPPET_FETCH_TIMEOUT_MS` | `2000` | Timeout per snippet request (ms) | 1500-3000 |
-| `SNIPPET_FETCH_RETRY_ATTEMPTS` | `1` | Retry attempts for failed requests | 0-3 |
+| Variable                       | Default | Description                        | Recommended Range |
+| ------------------------------ | ------- | ---------------------------------- | ----------------- |
+| `MAX_CONCURRENT_SNIPPET_FETCH` | `8`     | Maximum parallel snippet requests  | 4-12              |
+| `SNIPPET_FETCH_TIMEOUT_MS`     | `2000`  | Timeout per snippet request (ms)   | 1500-3000         |
+| `SNIPPET_FETCH_RETRY_ATTEMPTS` | `1`     | Retry attempts for failed requests | 0-3               |
 
 #### Configuration Presets
 
 **Conservative** (recommended for limited resources):
+
 ```bash
 MAX_CONCURRENT_SNIPPET_FETCH=4
 SNIPPET_FETCH_TIMEOUT_MS=1500
@@ -81,6 +82,7 @@ SNIPPET_FETCH_RETRY_ATTEMPTS=1
 ```
 
 **Recommended** (balanced performance):
+
 ```bash
 MAX_CONCURRENT_SNIPPET_FETCH=8
 SNIPPET_FETCH_TIMEOUT_MS=2000
@@ -88,6 +90,7 @@ SNIPPET_FETCH_RETRY_ATTEMPTS=1
 ```
 
 **Performance** (maximum throughput):
+
 ```bash
 MAX_CONCURRENT_SNIPPET_FETCH=10
 SNIPPET_FETCH_TIMEOUT_MS=3000
@@ -97,6 +100,7 @@ SNIPPET_FETCH_RETRY_ATTEMPTS=2
 ## Available Tools
 
 ### `search_knowledge`
+
 Semantically query code and docs across indexed repositories and return ranked snippets with citations.
 
 ```json
@@ -114,12 +118,14 @@ Semantically query code and docs across indexed repositories and return ranked s
 ```
 
 **Filtering Options**:
+
 - `repos`: Include only specific repositories
 - `path_prefix`: Include only paths matching these prefixes (e.g., `["src/", "lib/"]`)
 - `exclude_paths`: Exclude paths matching these prefixes (e.g., `["tests/", "node_modules/", "dist/"]`)
 - `exclude_patterns`: Exclude files matching glob patterns (e.g., `["*.test.ts", "*.config.json"]`)
 
 **Example**:
+
 ```json
 {
   "query": "authentication logic",
@@ -131,6 +137,7 @@ Semantically query code and docs across indexed repositories and return ranked s
 ```
 
 ### `fetch_chunk`
+
 Fetch a chunk by chunk_id and return fenced code with citation.
 
 ```json
@@ -140,6 +147,7 @@ Fetch a chunk by chunk_id and return fenced code with citation.
 ```
 
 ### `fetch_lines`
+
 Fetch a file slice [start, end] inclusive from disk and return fenced code with citation.
 
 ```json
@@ -152,6 +160,7 @@ Fetch a file slice [start, end] inclusive from disk and return fenced code with 
 ```
 
 ### `get_vector_store_info`
+
 Report namespaces, dims, limits, and approximate counts.
 
 ```json
@@ -159,6 +168,7 @@ Report namespaces, dims, limits, and approximate counts.
 ```
 
 ### `open_in_editor`
+
 Compute a vscode://file URI for a repo path and optional position.
 
 ```json

@@ -7,36 +7,30 @@ import { randomBytes } from "crypto";
 const fileWriteSchema = z.object({
   path: z.string().describe("File path relative to workspace"),
   content: z.string().describe("Content to write"),
-  create_backup: z
-    .boolean()
-    .default(true)
-    .describe("Create backup before overwriting"),
-  create_directories: z
-    .boolean()
-    .default(true)
-    .describe("Create parent directories"),
+  create_backup: z.boolean().default(true).describe("Create backup before overwriting"),
+  create_directories: z.boolean().default(true).describe("Create parent directories"),
 });
 
 export async function fileWrite(input: z.infer<typeof fileWriteSchema>) {
   const workspaceRoot = path.resolve(process.cwd());
-  
+
   // Reject absolute paths outright - all paths must be relative
   if (path.isAbsolute(input.path)) {
     throw new Error(`Access denied: absolute paths are not allowed. Use relative paths only.`);
   }
-  
+
   const fullPath = path.resolve(workspaceRoot, input.path);
 
   // Security: Workspace boundary check
   // Normalize both paths to handle symlinks and ensure consistent comparison
   const normalizedWorkspace = path.normalize(workspaceRoot);
   const normalizedPath = path.normalize(fullPath);
-  
+
   // Use path.relative to check if the resolved path escapes the workspace
   // If relative path starts with "..", it means we've gone outside
   const relativePath = path.relative(normalizedWorkspace, normalizedPath);
-  const escapesWorkspace = relativePath.startsWith('..') || path.isAbsolute(relativePath);
-  
+  const escapesWorkspace = relativePath.startsWith("..") || path.isAbsolute(relativePath);
+
   if (escapesWorkspace) {
     throw new Error(`Access denied: ${input.path} resolves outside workspace`);
   }
@@ -92,8 +86,7 @@ export async function fileWrite(input: z.infer<typeof fileWriteSchema>) {
 
 export const fileWriteTool = {
   name: "file_write",
-  description:
-    "Write content to a file with atomic operation and optional backup",
+  description: "Write content to a file with atomic operation and optional backup",
   inputSchema: fileWriteSchema,
   handler: fileWrite,
 };

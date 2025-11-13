@@ -5,10 +5,7 @@ import { z } from "zod";
 
 const readFilesSchema = z.object({
   paths: z.array(z.string()).min(1).max(50).describe("File paths to read"),
-  max_size_bytes: z
-    .number()
-    .default(1048576)
-    .describe("Max size per file (1MB default)"),
+  max_size_bytes: z.number().default(1048576).describe("Max size per file (1MB default)"),
   fail_on_error: z.boolean().default(false).describe("Fail if any file fails"),
 });
 
@@ -44,9 +41,7 @@ export async function readFiles(input: z.infer<typeof readFilesSchema>) {
       const stat = await fs.stat(fullPath);
 
       if (stat.size > input.max_size_bytes) {
-        throw new Error(
-          `File too large: ${stat.size} bytes > ${input.max_size_bytes} bytes`
-        );
+        throw new Error(`File too large: ${stat.size} bytes > ${input.max_size_bytes} bytes`);
       }
 
       const content = await fs.readFile(fullPath, "utf-8");
@@ -103,8 +98,7 @@ export async function readFiles(input: z.infer<typeof readFilesSchema>) {
 
 export const readFilesTool = {
   name: "read_files",
-  description:
-    "Read multiple files in batch with optional partial failure handling",
+  description: "Read multiple files in batch with optional partial failure handling",
   inputSchema: readFilesSchema,
   handler: readFiles,
 };
