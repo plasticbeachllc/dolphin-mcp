@@ -1,5 +1,5 @@
 import { restGetFileSlice } from "../../rest/client.js";
-import { mapWithConcurrency, TaskResult } from "../../util/concurrency.js";
+import { mapWithConcurrency } from "../../util/concurrency.js";
 import { logWarn, logError, logInfo } from "../../util/logger.js";
 
 /**
@@ -65,7 +65,12 @@ export async function fetchSnippetsInParallel(
   requests: SnippetFetchRequest[],
   options: SnippetFetchOptions = {}
 ): Promise<{ [key: number]: SnippetFetchResult | undefined }> {
-  const { maxConcurrent = 8, requestTimeoutMs = 1500, retryAttempts = 1, signal } = options;
+  const {
+    maxConcurrent = 8,
+    requestTimeoutMs = 1500,
+    retryAttempts = 1,
+    signal: _signal,
+  } = options;
 
   const startTime = Date.now();
   await logInfo("snippet_fetch", "Starting parallel snippet fetch", {
@@ -76,7 +81,7 @@ export async function fetchSnippetsInParallel(
 
   const results = await mapWithConcurrency(
     requests,
-    async (request, index) => {
+    async (request, _index) => {
       // Implement timeout and retry logic
       let lastError: Error | undefined;
 
@@ -137,17 +142,18 @@ export async function fetchSnippetsInParallel(
           lastError = error as Error;
 
           // DEBUG: Log fetch errors
+          const err = error instanceof Error ? error : new Error(String(error));
           await logError("snippet_fetch_debug", "Failed to fetch snippet", {
             repo: request.repo.trim(),
             path: request.path,
-            error_name: (error as any)?.name,
-            error_message: (error as any)?.message || String(error),
+            error_name: err.name,
+            error_message: err.message,
             attempt: attempt + 1,
             will_retry: attempt < retryAttempts,
           });
 
           // Don't retry for aborted signals
-          if ((error as any)?.name === "AbortError") {
+          if (err.name === "AbortError") {
             throw error;
           }
 

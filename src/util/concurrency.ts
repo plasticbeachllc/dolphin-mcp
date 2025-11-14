@@ -66,7 +66,7 @@ export async function mapWithConcurrency<T, R>(
     return results;
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     let currentIndex = 0;
     let activeCount = 0;
     let hasError = false;

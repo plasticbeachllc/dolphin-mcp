@@ -48,8 +48,8 @@ export async function fileWrite(input: z.infer<typeof fileWriteSchema>) {
       backupPath = `${fullPath}.backup-${timestamp}`;
       await fs.copyFile(fullPath, backupPath);
     }
-  } catch (error: any) {
-    if (error.code === "ENOENT") {
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       createdNew = true;
 
       // Create directories

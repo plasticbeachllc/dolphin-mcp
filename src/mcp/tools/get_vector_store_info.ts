@@ -2,7 +2,11 @@ import type { Tool, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { restListRepos } from "../../rest/client.js";
 import { logInfo, logError } from "../../util/logger.js";
 
-export function makeGetVectorStoreInfo(): { definition: Tool; handler: any } {
+export function makeGetVectorStoreInfo(): {
+  definition: Tool;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handler: any;
+} {
   const definition: Tool = {
     name: "get_vector_store_info",
     description: "Report namespaces, dims, limits, and approximate counts.",
@@ -10,7 +14,7 @@ export function makeGetVectorStoreInfo(): { definition: Tool; handler: any } {
     annotations: { title: "Vector Store Info", readOnlyHint: true, idempotentHint: true },
   };
 
-  const handler = async (_args: any, signal?: AbortSignal): Promise<CallToolResult> => {
+  const handler = async (_args: unknown, signal?: AbortSignal): Promise<CallToolResult> => {
     const started = Date.now();
     try {
       const repos = await restListRepos(signal);
@@ -32,10 +36,11 @@ export function makeGetVectorStoreInfo(): { definition: Tool; handler: any } {
         isError: false,
         data,
       };
-    } catch (e: any) {
-      const err = e?.error
-        ? e
-        : { error: { code: "unexpected_error", message: e?.message ?? String(e) } };
+    } catch (e: unknown) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      const err = (e as { error?: { code: string; message: string } })?.error
+        ? (e as { error: { code: string; message: string } })
+        : { error: { code: "unexpected_error", message: error.message } };
       await logError("get_vector_store_info", "get_vector_store_info error", {
         error_code: err.error.code,
         message: err.error.message,

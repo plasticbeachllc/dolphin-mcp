@@ -17,9 +17,9 @@ interface LogLine {
   ts: string;
   level: Level;
   event: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   message: string;
-  meta?: Record<string, any>;
+  meta?: Record<string, unknown>;
 }
 
 async function exists(p: string): Promise<boolean> {
@@ -76,8 +76,8 @@ function baseLine(
   level: Level,
   event: string,
   message: string,
-  meta?: Record<string, any>,
-  context?: Record<string, any>
+  meta?: Record<string, unknown>,
+  context?: Record<string, unknown>
 ): LogLine {
   return {
     ts: new Date().toISOString(),
@@ -92,8 +92,8 @@ function baseLine(
 export async function logInfo(
   event: string,
   message: string,
-  meta?: Record<string, any>,
-  context?: Record<string, any>
+  meta?: Record<string, unknown>,
+  context?: Record<string, unknown>
 ): Promise<void> {
   await writeLine(baseLine("info", event, message, meta, context));
 }
@@ -101,8 +101,8 @@ export async function logInfo(
 export async function logWarn(
   event: string,
   message: string,
-  meta?: Record<string, any>,
-  context?: Record<string, any>
+  meta?: Record<string, unknown>,
+  context?: Record<string, unknown>
 ): Promise<void> {
   await writeLine(baseLine("warn", event, message, meta, context));
 }
@@ -110,8 +110,8 @@ export async function logWarn(
 export async function logError(
   event: string,
   message: string,
-  meta?: Record<string, any>,
-  context?: Record<string, any>
+  meta?: Record<string, unknown>,
+  context?: Record<string, unknown>
 ): Promise<void> {
   await writeLine(baseLine("error", event, message, meta, context));
 }

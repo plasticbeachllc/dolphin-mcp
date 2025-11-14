@@ -15,17 +15,18 @@ const INPUT_SHAPE = {
 
 const INPUT = z.object(INPUT_SHAPE);
 
-type Input = z.infer<typeof INPUT>;
+// type _Input = z.infer<typeof INPUT>;
 
 export function makeFileWrite(): {
   definition: Tool;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handler: any;
   inputSchema: typeof INPUT_SHAPE;
 } {
   const definition: Tool = {
     name: "file_write",
     description: "Write content to a file with atomic operation and optional backup",
-    inputSchema: zodToJsonSchema(INPUT) as any,
+    inputSchema: zodToJsonSchema(INPUT) as Tool["inputSchema"],
     annotations: {
       title: "Write File",
       readOnlyHint: false,
@@ -33,9 +34,10 @@ export function makeFileWrite(): {
     },
   };
 
-  const handler = async (args: any, signal?: AbortSignal): Promise<CallToolResult> => {
+  const handler = async (args: unknown, _signal?: AbortSignal): Promise<CallToolResult> => {
     try {
-      const input = INPUT.parse(args?.input ?? args);
+      const argsObj = args as { input?: unknown } | undefined;
+      const input = INPUT.parse(argsObj?.input ?? args);
       const workspaceRoot = path.resolve(process.cwd());
 
       // Reject absolute paths outright - all paths must be relative
@@ -72,8 +74,8 @@ export function makeFileWrite(): {
           backupPath = `${fullPath}.backup-${timestamp}`;
           await fs.copyFile(fullPath, backupPath);
         }
-      } catch (error: any) {
-        if (error.code === "ENOENT") {
+      } catch (error: unknown) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
           createdNew = true;
 
           // Create directories
@@ -111,9 +113,10 @@ export function makeFileWrite(): {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         isError: false,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
       return {
-        content: [{ type: "text", text: `File write failed: ${error.message}` }],
+        content: [{ type: "text", text: `File write failed: ${err.message}` }],
         isError: true,
       };
     }

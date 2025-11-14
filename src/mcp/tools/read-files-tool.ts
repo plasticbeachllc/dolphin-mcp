@@ -13,7 +13,7 @@ const INPUT_SHAPE = {
 
 const INPUT = z.object(INPUT_SHAPE);
 
-type Input = z.infer<typeof INPUT>;
+// type _Input = z.infer<typeof INPUT>;
 
 type ReadFileSuccess = {
   path: string;
@@ -34,13 +34,14 @@ type ReadFileResult = ReadFileSuccess | ReadFileError;
 
 export function makeReadFiles(): {
   definition: Tool;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handler: any;
   inputSchema: typeof INPUT_SHAPE;
 } {
   const definition: Tool = {
     name: "read_files",
     description: "Read multiple files in batch with optional partial failure handling",
-    inputSchema: zodToJsonSchema(INPUT) as any,
+    inputSchema: zodToJsonSchema(INPUT) as Tool["inputSchema"],
     annotations: {
       title: "Read Files",
       readOnlyHint: true,
@@ -48,9 +49,10 @@ export function makeReadFiles(): {
     },
   };
 
-  const handler = async (args: any, signal?: AbortSignal): Promise<CallToolResult> => {
+  const handler = async (args: unknown, _signal?: AbortSignal): Promise<CallToolResult> => {
     try {
-      const input = INPUT.parse(args?.input ?? args);
+      const argsObj = args as { input?: unknown } | undefined;
+      const input = INPUT.parse(argsObj?.input ?? args);
       const workspaceRoot = process.cwd();
 
       const settledResults = await Promise.allSettled(
@@ -125,9 +127,10 @@ export function makeReadFiles(): {
         content: [{ type: "text", text: JSON.stringify(response, null, 2) }],
         isError: false,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
       return {
-        content: [{ type: "text", text: `Read files failed: ${error.message}` }],
+        content: [{ type: "text", text: `Read files failed: ${err.message}` }],
         isError: true,
       };
     }

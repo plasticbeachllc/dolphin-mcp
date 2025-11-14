@@ -17,29 +17,32 @@ const INPUT = z.object(INPUT_SHAPE);
 
 export function makeGetMetadata(): {
   definition: Tool;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handler: any;
   inputSchema: typeof INPUT_SHAPE;
 } {
   const definition: Tool = {
     name: "get_metadata",
     description: "Return metadata for a chunk by chunk_id.",
-    inputSchema: zodToJsonSchema(INPUT) as any,
+    inputSchema: zodToJsonSchema(INPUT) as Tool["inputSchema"],
     annotations: { title: "Chunk Metadata", readOnlyHint: true, idempotentHint: true },
   };
 
-  const handler = async (args: any, signal?: AbortSignal): Promise<CallToolResult> => {
+  const handler = async (args: unknown, signal?: AbortSignal): Promise<CallToolResult> => {
     const started = Date.now();
     try {
-      const input = INPUT.parse(args?.input ?? args);
+      const argsObj = args as { input?: unknown } | undefined;
+      const input = INPUT.parse(argsObj?.input ?? args);
       const chunk = await restGetChunk(input.chunk_id, signal);
       // Drop content to keep response small
-      const { content, ...meta } = chunk as any;
+      const { content: _content, ...meta } = chunk;
       await logInfo("get_metadata", "get_metadata success", { latency_ms: Date.now() - started });
       return { content: [{ type: "text", text: "Metadata ready." }], isError: false, data: meta };
-    } catch (e: any) {
-      const err = e?.error
-        ? e
-        : { error: { code: "unexpected_error", message: e?.message ?? String(e) } };
+    } catch (e: unknown) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      const err = (e as { error?: { code: string; message: string } })?.error
+        ? (e as { error: { code: string; message: string } })
+        : { error: { code: "unexpected_error", message: error.message } };
       await logError("get_metadata", "get_metadata error", {
         error_code: err.error.code,
         message: err.error.message,

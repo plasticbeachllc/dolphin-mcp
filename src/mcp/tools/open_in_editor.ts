@@ -23,20 +23,22 @@ function isExpired(entry: CacheEntry): boolean {
 
 export function makeOpenInEditor(): {
   definition: Tool;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handler: any;
   inputSchema: typeof INPUT_SHAPE;
 } {
   const definition: Tool = {
     name: "open_in_editor",
     description: "Compute a vscode://file URI for a repo path and optional position.",
-    inputSchema: zodToJsonSchema(INPUT) as any,
+    inputSchema: zodToJsonSchema(INPUT) as Tool["inputSchema"],
     annotations: { title: "Open in VS Code", readOnlyHint: false },
   };
 
-  const handler = async (args: any, signal?: AbortSignal): Promise<CallToolResult> => {
+  const handler = async (args: unknown, signal?: AbortSignal): Promise<CallToolResult> => {
     const started = Date.now();
     try {
-      const input = INPUT.parse(args?.input ?? args);
+      const argsObj = args as { input?: unknown } | undefined;
+      const input = INPUT.parse(argsObj?.input ?? args);
       const repoName = input.repo.trim();
 
       if (!cache || isExpired(cache)) {
@@ -61,10 +63,11 @@ export function makeOpenInEditor(): {
         latency_ms: Date.now() - started,
       });
       return { content: [{ type: "text", text: uri }], isError: false, data: { uri } };
-    } catch (e: any) {
-      const err = e?.error
-        ? e
-        : { error: { code: "unexpected_error", message: e?.message ?? String(e) } };
+    } catch (e: unknown) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      const err = (e as { error?: { code: string; message: string } })?.error
+        ? (e as { error: { code: string; message: string } })
+        : { error: { code: "unexpected_error", message: error.message } };
       await logError("open_in_editor", "open_in_editor error", {
         error_code: err.error.code,
         message: err.error.message,

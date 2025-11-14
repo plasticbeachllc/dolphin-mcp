@@ -24,6 +24,7 @@ const INPUT = z.object(INPUT_SHAPE);
 
 export function makeFetchLines(): {
   definition: Tool;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handler: any;
   inputSchema: typeof INPUT_SHAPE;
 } {
@@ -31,14 +32,15 @@ export function makeFetchLines(): {
     name: "fetch_lines",
     description:
       "Fetch a file slice [start, end] inclusive from disk and return fenced code with citation.",
-    inputSchema: zodToJsonSchema(INPUT) as any,
+    inputSchema: zodToJsonSchema(INPUT) as Tool["inputSchema"],
     annotations: { title: "Fetch File Lines", readOnlyHint: true, idempotentHint: true },
   };
 
-  const handler = async (args: any, signal?: AbortSignal): Promise<CallToolResult> => {
+  const handler = async (args: unknown, signal?: AbortSignal): Promise<CallToolResult> => {
     const started = Date.now();
     try {
-      const input = INPUT.parse(args?.input ?? args);
+      const argsObj = args as { input?: unknown } | undefined;
+      const input = INPUT.parse(argsObj?.input ?? args);
       const res = await restGetFileSlice(
         input.repo.trim(),
         input.path,
@@ -62,10 +64,11 @@ export function makeFetchLines(): {
 
       await logInfo("fetch_file", "fetch_lines success", { latency_ms: Date.now() - started });
       return { content, isError: false, data: res };
-    } catch (e: any) {
-      const err = e?.error
-        ? e
-        : { error: { code: "unexpected_error", message: e?.message ?? String(e) } };
+    } catch (e: unknown) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      const err = (e as { error?: { code: string; message: string } })?.error
+        ? (e as { error: { code: string; message: string } })
+        : { error: { code: "unexpected_error", message: error.message } };
       await logError("fetch_file", "fetch_lines error", {
         error_code: err.error.code,
         message: err.error.message,

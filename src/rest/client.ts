@@ -4,7 +4,7 @@ export interface RestError {
   error: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown;
     remediation?: string;
   };
 }
@@ -100,12 +100,13 @@ async function doFetch<T>(path: string, init?: RequestInit, signal?: AbortSignal
   const text = await res.text();
 
   // Be robust to non-JSON upstream responses (e.g., "Internal Server Error")
-  let json: any = {};
+  let json: unknown = {};
   try {
     json = text ? JSON.parse(text) : {};
-  } catch (parseErr: any) {
+  } catch (parseErr: unknown) {
     const snippet = text?.slice(0, 200) ?? "";
-    const rawMsg = parseErr?.message ?? String(parseErr);
+    const error = parseErr instanceof Error ? parseErr : new Error(String(parseErr));
+    const rawMsg = error.message;
     const normalizedMsg =
       typeof rawMsg === "string" ? rawMsg.replace(/^JSON Parse error:\s*/i, "") : String(rawMsg);
     const err: RestError = {
@@ -122,7 +123,7 @@ async function doFetch<T>(path: string, init?: RequestInit, signal?: AbortSignal
 
   if (!res.ok) {
     // Ensure a structured error even if upstream returned plain text
-    if (!(json as any)?.error) {
+    if (!(json as { error?: unknown })?.error) {
       const err: RestError = {
         error: {
           code: "upstream_error",

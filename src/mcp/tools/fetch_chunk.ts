@@ -18,20 +18,22 @@ const INPUT = z.object(INPUT_SHAPE);
 
 export function makeFetchChunk(): {
   definition: Tool;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handler: any;
   inputSchema: typeof INPUT_SHAPE;
 } {
   const definition: Tool = {
     name: "fetch_chunk",
     description: "Fetch a chunk by chunk_id and return fenced code with citation.",
-    inputSchema: zodToJsonSchema(INPUT) as any,
+    inputSchema: zodToJsonSchema(INPUT) as Tool["inputSchema"],
     annotations: { title: "Fetch Chunk", readOnlyHint: true, idempotentHint: true },
   };
 
-  const handler = async (args: any, signal?: AbortSignal): Promise<CallToolResult> => {
+  const handler = async (args: unknown, signal?: AbortSignal): Promise<CallToolResult> => {
     const started = Date.now();
     try {
-      const input = INPUT.parse(args?.input ?? args);
+      const argsObj = args as { input?: unknown } | undefined;
+      const input = INPUT.parse(argsObj?.input ?? args);
       const chunk = await restGetChunk(input.chunk_id, signal);
       const lang = chunk.lang;
       const code = chunk.content;
@@ -47,10 +49,11 @@ export function makeFetchChunk(): {
 
       await logInfo("fetch_chunk", "fetch_chunk success", { latency_ms: Date.now() - started });
       return { content, isError: false, data: chunk };
-    } catch (e: any) {
-      const err = e?.error
-        ? e
-        : { error: { code: "unexpected_error", message: e?.message ?? String(e) } };
+    } catch (e: unknown) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      const err = (e as { error?: { code: string; message: string } })?.error
+        ? (e as { error: { code: string; message: string } })
+        : { error: { code: "unexpected_error", message: error.message } };
       await logError("fetch_chunk", "fetch_chunk error", {
         error_code: err.error.code,
         message: err.error.message,

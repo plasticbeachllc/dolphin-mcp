@@ -148,7 +148,7 @@ export function validateConfig(): string[] {
 /**
  * Get configuration summary for logging
  */
-export function getConfigSummary(): Record<string, any> {
+export function getConfigSummary(): Record<string, unknown> {
   return {
     dolphin_api_url: CONFIG.DOLPHIN_API_URL,
     server_name: CONFIG.SERVER_NAME,

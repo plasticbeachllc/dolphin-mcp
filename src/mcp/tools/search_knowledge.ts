@@ -1,9 +1,4 @@
-import type {
-  Tool,
-  CallToolResult,
-  EmbeddedResource,
-  TextContent,
-} from "@modelcontextprotocol/sdk/types.js";
+import type { Tool, CallToolResult, TextContent } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { restSearch, type SearchResponse } from "../../rest/client.js";
@@ -29,7 +24,7 @@ interface ApiSearchHit {
   branch?: string;
 }
 
-interface ApiSearchResponse {
+interface _ApiSearchResponse {
   hits: ApiSearchHit[];
   meta: {
     top_k?: number;
@@ -67,26 +62,45 @@ const INPUT_SHAPE = {
 
 const INPUT = z.object(INPUT_SHAPE);
 
-type Input = z.infer<typeof INPUT>;
+type _Input = z.infer<typeof INPUT>;
 
 const CAP_BYTES = 70 * 1024;
-const PER_SNIPPET_CHAR_CAP = 1000;
+const _PER_SNIPPET_CHAR_CAP = 1000;
 const SHRUNK_SNIPPET_CHAR_CAP = 600;
 const MIN_SNIPPET_CHAR_FLOOR = 300;
 
 import { fenceLang } from "../../util/language.js";
 
-function formatGraphContext(graphContext: any): string {
-  if (!graphContext || !graphContext.nodes || graphContext.nodes.length === 0) {
+interface GraphRelationship {
+  type: string;
+  direction: string;
+  target?: { qualified_name: string };
+  source?: { qualified_name: string };
+  line_number?: number;
+}
+
+interface GraphContext {
+  nodes?: Array<{
+    type: string;
+    qualified_name: string;
+    signature?: string;
+    line_range: [number, number];
+  }>;
+  relationships?: GraphRelationship[];
+}
+
+function formatGraphContext(graphContext: unknown): string {
+  const ctx = graphContext as GraphContext;
+  if (!ctx || !ctx.nodes || ctx.nodes.length === 0) {
     return "";
   }
 
   const lines: string[] = ["", "### Code Graph Context", ""];
 
   // Format nodes
-  if (graphContext.nodes && graphContext.nodes.length > 0) {
+  if (ctx.nodes && ctx.nodes.length > 0) {
     lines.push("**Entities:**");
-    for (const node of graphContext.nodes) {
+    for (const node of ctx.nodes) {
       const sig = node.signature ? ` - ${node.signature}` : "";
       lines.push(
         `- **${node.type}** \`${node.qualified_name}\`${sig} (lines ${node.line_range[0]}-${node.line_range[1]})`
@@ -96,27 +110,21 @@ function formatGraphContext(graphContext: any): string {
   }
 
   // Format relationships grouped by type
-  const relationships = graphContext.relationships || [];
+  const relationships = ctx.relationships || [];
   if (relationships.length > 0) {
-    const callsTo = relationships.filter(
-      (r: any) => r.type === "calls" && r.direction === "outgoing"
-    );
-    const calledBy = relationships.filter(
-      (r: any) => r.type === "calls" && r.direction === "incoming"
-    );
+    const callsTo = relationships.filter((r) => r.type === "calls" && r.direction === "outgoing");
+    const calledBy = relationships.filter((r) => r.type === "calls" && r.direction === "incoming");
     const inherits = relationships.filter(
-      (r: any) => r.type === "inherits" && r.direction === "outgoing"
+      (r) => r.type === "inherits" && r.direction === "outgoing"
     );
-    const implementations = relationships.filter((r: any) => r.type === "implements");
-    const imports = relationships.filter(
-      (r: any) => r.type === "imports" && r.direction === "outgoing"
-    );
+    const implementations = relationships.filter((r) => r.type === "implements");
+    const imports = relationships.filter((r) => r.type === "imports" && r.direction === "outgoing");
 
     if (callsTo.length > 0) {
       lines.push("**Calls:**");
       for (const rel of callsTo.slice(0, 5)) {
         const lineInfo = rel.line_number ? ` (line ${rel.line_number})` : "";
-        lines.push(`- → \`${rel.target.qualified_name}\`${lineInfo}`);
+        lines.push(`- → \`${rel.target?.qualified_name}\`${lineInfo}`);
       }
       lines.push("");
     }
@@ -125,7 +133,7 @@ function formatGraphContext(graphContext: any): string {
       lines.push("**Called by:**");
       for (const rel of calledBy.slice(0, 5)) {
         const lineInfo = rel.line_number ? ` (line ${rel.line_number})` : "";
-        lines.push(`- ← \`${rel.source.qualified_name}\`${lineInfo}`);
+        lines.push(`- ← \`${rel.source?.qualified_name}\`${lineInfo}`);
       }
       lines.push("");
     }
@@ -133,7 +141,7 @@ function formatGraphContext(graphContext: any): string {
     if (inherits.length > 0) {
       lines.push("**Inherits from:**");
       for (const rel of inherits) {
-        lines.push(`- \`${rel.target.qualified_name}\``);
+        lines.push(`- \`${rel.target?.qualified_name}\``);
       }
       lines.push("");
     }
@@ -142,9 +150,9 @@ function formatGraphContext(graphContext: any): string {
       lines.push("**Implementations:**");
       for (const rel of implementations) {
         if (rel.direction === "outgoing") {
-          lines.push(`- Implements \`${rel.target.qualified_name}\``);
+          lines.push(`- Implements \`${rel.target?.qualified_name}\``);
         } else {
-          lines.push(`- Implemented by \`${rel.source.qualified_name}\``);
+          lines.push(`- Implemented by \`${rel.source?.qualified_name}\``);
         }
       }
       lines.push("");
@@ -153,7 +161,7 @@ function formatGraphContext(graphContext: any): string {
     if (imports.length > 0) {
       lines.push("**Dependencies:**");
       for (const rel of imports.slice(0, 5)) {
-        lines.push(`- \`${rel.target.qualified_name}\``);
+        lines.push(`- \`${rel.target?.qualified_name}\``);
       }
       lines.push("");
     }
@@ -162,10 +170,27 @@ function formatGraphContext(graphContext: any): string {
   return lines.join("\n");
 }
 
+interface ExtendedSearchHit {
+  chunk_id: string;
+  repo: string;
+  path: string;
+  start_line: number;
+  end_line: number;
+  lang?: string;
+  snippet?: string;
+  score: number;
+  resource_link: string;
+  graph_context?: unknown;
+  _context_start_line?: number;
+  _context_end_line?: number;
+  _chunk_start_line?: number;
+  _chunk_end_line?: number;
+}
+
 function buildPromptReady(res: SearchResponse): string {
   const parts: string[] = [];
   for (const h of res.hits) {
-    const hit = h as any;
+    const hit = h as unknown as ExtendedSearchHit;
 
     // Show expanded line range if context was included
     const hasContext = hit._context_start_line && hit._context_start_line !== hit.start_line;
@@ -194,16 +219,16 @@ function buildPromptReady(res: SearchResponse): string {
 
       const formattedLines: string[] = [];
       lines.forEach((line, idx) => {
-        const lineNum = contextStart + idx;
+        const lineNum = (contextStart ?? hit.start_line) + idx;
 
         // Mark context vs chunk boundaries
-        if (lineNum === chunkStart && contextStart < chunkStart) {
+        if (lineNum === chunkStart && (contextStart ?? hit.start_line) < chunkStart) {
           formattedLines.push("# --- Result starts (line " + chunkStart + ") ---");
         }
 
         formattedLines.push(line);
 
-        if (lineNum === chunkEnd && chunkEnd < hit._context_end_line) {
+        if (lineNum === chunkEnd && chunkEnd < (hit._context_end_line ?? hit.end_line)) {
           formattedLines.push("# --- Result ends (line " + chunkEnd + ") ---");
         }
       });
@@ -225,6 +250,7 @@ function buildPromptReady(res: SearchResponse): string {
 
 export function makeSearchKnowledge(): {
   definition: Tool;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handler: any;
   inputSchema: typeof INPUT_SHAPE;
 } {
@@ -232,7 +258,7 @@ export function makeSearchKnowledge(): {
     name: "search_knowledge",
     description:
       "Semantically query code and docs across indexed repositories and return ranked snippets with citations.",
-    inputSchema: zodToJsonSchema(INPUT) as any,
+    inputSchema: zodToJsonSchema(INPUT) as Tool["inputSchema"],
     annotations: {
       title: "Search Knowledge Base",
       readOnlyHint: true,
@@ -240,10 +266,11 @@ export function makeSearchKnowledge(): {
     },
   };
 
-  const handler = async (args: any, signal?: AbortSignal): Promise<CallToolResult> => {
+  const handler = async (args: unknown, signal?: AbortSignal): Promise<CallToolResult> => {
     const started = Date.now();
     try {
-      const input = INPUT.parse(args?.input ?? args);
+      const argsObj = args as { input?: unknown } | undefined;
+      const input = INPUT.parse(argsObj?.input ?? args);
 
       // Trim repo names only
       const repos = input.repos?.map((r) => r.trim());
@@ -272,7 +299,18 @@ export function makeSearchKnowledge(): {
       const res: SearchResponse = await restSearch(body, signal);
 
       // Transform API response to match expected format using parallel snippet fetching
-      const hits = res.hits as any[];
+      interface ApiHit {
+        repo: string;
+        path: string;
+        start_line: number;
+        end_line: number;
+        language?: string;
+        lang?: string;
+        chunk_id: string;
+        score: number;
+        graph_context?: unknown;
+      }
+      const hits = res.hits as unknown as ApiHit[];
 
       // Log search completion and snippet fetch start
       await logInfo("snippet_fetch_start", "search_knowledge: Starting parallel snippet fetch", {
@@ -287,7 +325,7 @@ export function makeSearchKnowledge(): {
       const contextBefore = input.context_lines_before || 0;
       const contextAfter = input.context_lines_after || 0;
 
-      const snippetRequests: SnippetFetchRequest[] = hits.map((hit: any) => ({
+      const snippetRequests: SnippetFetchRequest[] = hits.map((hit) => ({
         repo: hit.repo.trim(),
         path: hit.path,
         startLine: hit.start_line,
@@ -305,7 +343,7 @@ export function makeSearchKnowledge(): {
       });
 
       // Transform results with snippet content and metadata
-      const transformedHits = hits.map((hit: any, index: number) => {
+      const transformedHits = hits.map((hit, index: number) => {
         const snippetResult = snippetResults[index];
         return {
           ...hit,
@@ -394,7 +432,7 @@ export function makeSearchKnowledge(): {
 
       // Step 1: Trim prompt_ready text to fit budget
       if (size > CAP_BYTES) {
-        const prIndex = content.length > 1 && (content[1] as any)?.type === "text" ? 1 : -1;
+        const prIndex = content.length > 1 && content[1]?.type === "text" ? 1 : -1;
         if (prIndex === 1) {
           let prText: string = (content[1] as TextContent).text;
           // Iteratively trim promptReady by 10% until under cap or floor
@@ -412,10 +450,15 @@ export function makeSearchKnowledge(): {
         // First pass: cap each resource text to SHRUNK_SNIPPET_CHAR_CAP
         for (let i = 0; i < content.length && size > CAP_BYTES; i++) {
           const block = content[i];
-          if (block.type === "resource" && (block as any).resource?.text) {
-            const txt: string = (block as any).resource.text;
+          if (
+            block.type === "resource" &&
+            "resource" in block &&
+            block.resource &&
+            "text" in block.resource
+          ) {
+            const txt = block.resource.text as string;
             if (txt.length > SHRUNK_SNIPPET_CHAR_CAP) {
-              (block as any).resource.text = txt.slice(0, SHRUNK_SNIPPET_CHAR_CAP);
+              block.resource.text = txt.slice(0, SHRUNK_SNIPPET_CHAR_CAP);
               size = jsonSizeBytes(result);
             }
           }
@@ -423,10 +466,15 @@ export function makeSearchKnowledge(): {
         // Second pass: cap further to MIN_SNIPPET_CHAR_FLOOR if still too big
         for (let i = 0; i < content.length && size > CAP_BYTES; i++) {
           const block = content[i];
-          if (block.type === "resource" && (block as any).resource?.text) {
-            const txt: string = (block as any).resource.text;
+          if (
+            block.type === "resource" &&
+            "resource" in block &&
+            block.resource &&
+            "text" in block.resource
+          ) {
+            const txt = block.resource.text as string;
             if (txt.length > MIN_SNIPPET_CHAR_FLOOR) {
-              (block as any).resource.text = txt.slice(0, MIN_SNIPPET_CHAR_FLOOR);
+              block.resource.text = txt.slice(0, MIN_SNIPPET_CHAR_FLOOR);
               size = jsonSizeBytes(result);
             }
           }
@@ -438,9 +486,14 @@ export function makeSearchKnowledge(): {
         for (let i = transformedRes.hits.length - 1; i >= 0 && size > CAP_BYTES; i--) {
           const blockIdx = i + 2; // +2 to skip summary and promptReady
           const block = result.content[blockIdx];
-          if (block?.type === "resource" && typeof (block as any).resource?.text === "string") {
+          if (
+            block?.type === "resource" &&
+            "resource" in block &&
+            block.resource &&
+            "text" in block.resource
+          ) {
             // Replace with empty string to satisfy SDK schema while trimming payload
-            (block as any).resource.text = "";
+            block.resource.text = "";
             size = jsonSizeBytes(result);
           }
         }
@@ -450,7 +503,7 @@ export function makeSearchKnowledge(): {
       if (size > CAP_BYTES) {
         while (result.content.length > 1 && size > CAP_BYTES) {
           // Keep summary at index 0; attempt to keep promptReady at index 1 if present
-          const dropIndex = result.content.length - 1;
+          const _dropIndex = result.content.length - 1;
           // pop content and its meta hit
           result.content.pop();
           metaHits.pop();
@@ -496,10 +549,11 @@ export function makeSearchKnowledge(): {
       });
 
       return result;
-    } catch (e: any) {
-      const err = e?.error
-        ? e
-        : { error: { code: "unexpected_error", message: e?.message ?? String(e) } };
+    } catch (e: unknown) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      const err = (e as { error?: { code: string; message: string; remediation?: string } })?.error
+        ? (e as { error: { code: string; message: string; remediation?: string } })
+        : { error: { code: "unexpected_error", message: error.message } };
       await logError("search", "search_knowledge error", {
         error_code: err.error.code,
         message: err.error.message,

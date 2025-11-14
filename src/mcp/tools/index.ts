@@ -11,6 +11,7 @@ import { makeReadFiles } from "./read-files-tool.js";
 
 export interface ToolRegistration {
   definition: Tool;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handler: any;
   inputSchema?: ZodRawShape;
 }
