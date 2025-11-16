@@ -6,13 +6,10 @@ let stop: () => Promise<void>;
 
 beforeAll(async () => {
   stop = await startMockRest(7777);
-  // Set environment variable to point to mock server
-  process.env.KB_REST_BASE_URL = "http://localhost:7777";
 });
 
 afterAll(async () => {
   await stop?.();
-  delete process.env.KB_REST_BASE_URL;
 });
 
 describe("REST Client - Search", () => {
